@@ -88,9 +88,6 @@ export default function StackNavigator({ initialRoute = 'RoleSelection' }) {
         <Stack.Screen
           name="Rider_HomeScreen"
           component={RiderHomeScreen}
-          options={{
-            headerTitle: () => <LogoTitle title="Home" />,
-          }}
         />
         <Stack.Screen
           name="Bike_Screen"
