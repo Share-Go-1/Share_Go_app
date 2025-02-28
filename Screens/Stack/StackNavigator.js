@@ -85,10 +85,11 @@ export default function StackNavigator({ initialRoute = 'RoleSelection' }) {
           }}
         />
 
-        <Stack.Screen
-          name="Rider_HomeScreen"
-          component={RiderHomeScreen}
-        />
+<Stack.Screen
+  name="Rider_HomeScreen"
+  component={RiderHomeScreen}
+  options={{ headerShown: false }}  // Yeh default header hide karega
+/>
         <Stack.Screen
           name="Bike_Screen"
           component={BikeScreen}
