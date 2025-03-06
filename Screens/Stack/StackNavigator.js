@@ -13,7 +13,7 @@ import RiderHomeScreen from '../Riders-Folder/RiderHomeScreen';
 // for the driver screens
 import DriverSelectionScreen from '../Drivers-Folder/Drivers-Selection/DriverSelectionScreen';
 import BikeScreen from '../Drivers-Folder/Vechiles-Folder/Bike';
-import CarScreen from  '../Drivers-Folder/Vechiles-Folder/Car';
+import CarScreen from '../Drivers-Folder/Vechiles-Folder/Car';
 import Driver_HomeScreen from '../Drivers-Folder/Driver_HomeScreen';
 
 // for the documentation screens
@@ -41,8 +41,7 @@ function LogoTitle({title}) {
   );
 }
 
-export default function StackNavigator({ initialRoute = 'RoleSelection' }) {
-
+export default function StackNavigator({initialRoute = 'RoleSelection'}) {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName={initialRoute}>
@@ -85,11 +84,11 @@ export default function StackNavigator({ initialRoute = 'RoleSelection' }) {
           }}
         />
 
-<Stack.Screen
-  name="Rider_HomeScreen"
-  component={RiderHomeScreen}
-  options={{ headerShown: false }}  // Yeh default header hide karega
-/>
+        <Stack.Screen
+          name="Rider_HomeScreen"
+          component={RiderHomeScreen}
+          options={{headerShown: false}} // Yeh default header hide karega
+        />
         <Stack.Screen
           name="Bike_Screen"
           component={BikeScreen}
