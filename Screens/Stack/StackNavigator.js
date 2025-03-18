@@ -3,6 +3,8 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import PrivacyPolicyScreen from '../Riders-Folder/Navigation Screens/PrivacyPolicyScreen';
 
+import DriverPrivacyPolicy from '../Drivers-Folder/Driver Navigation Screen/DriverPrivacyPolicyScreen';
+import DriverMainHomeScreen from '../Drivers-Folder/DriverMainHomeScreen';
 
 // for the role selection screen
 import RoleSelectionScreen from '../Role-Selection/RoleSelectionScreen';
@@ -53,6 +55,8 @@ export default function StackNavigator({initialRoute = 'RoleSelection'}) {
         <Stack.Screen name="LincenseScreen" component={LincenseScreen} />
         <Stack.Screen name="VehicleInfoScreen" component={VehicleInfoScreen} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="DriverPrivacyPolicy" component={DriverPrivacyPolicy} options={{ headerShown: false }} />
+        <Stack.Screen name="DriverMainHomeScreen" component={DriverMainHomeScreen} options={{ headerShown: false }} />
 
       </Stack.Navigator>
     </NavigationContainer>

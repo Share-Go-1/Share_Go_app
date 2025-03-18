@@ -3,11 +3,14 @@ import {View, Text, StyleSheet} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import {BASE_URL} from '../../config/config';
+import {useNavigation} from '@react-navigation/native';
 
 const Driver_HomeScreen = () => {
   const [verificationStatus, setVerificationStatus] = useState('');
   const [driverId, setDriverId] = useState(null);
   const [driverName, setDriverName] = useState('');
+
+  const navigation = useNavigation(); // Hook to get navigation object
 
   useEffect(() => {
     const fetchDriverId = async () => {
@@ -32,16 +35,20 @@ const Driver_HomeScreen = () => {
       }
     }, 5000); // Check every 5 seconds
 
-    // Cleanup interval on unmount
     return () => clearInterval(interval);
   }, [driverId]);
+
+  useEffect(() => {
+    if (verificationStatus === 'verified') {
+      navigation.replace('DriverMainHomeScreen'); // Navigate when verified
+    }
+  }, [verificationStatus, navigation]);
 
   const fetchDriverDetails = async id => {
     try {
       const response = await axios.get(`${BASE_URL}/drivers/${id}`);
       console.log('Driver Details Response:', response.data);
 
-      // Extract the driver's name from the basicInfo object
       const basicInfo = response.data.basicInfo || {};
       const firstName = basicInfo.firstName || 'Unknown';
       const lastName = basicInfo.lastName || 'Driver';
@@ -91,6 +98,7 @@ const Driver_HomeScreen = () => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
