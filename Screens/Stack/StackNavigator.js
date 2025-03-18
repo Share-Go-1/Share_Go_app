@@ -2,7 +2,7 @@ import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import PrivacyPolicyScreen from '../Riders-Folder/Navigation Screens/PrivacyPolicyScreen';
-import {Text, View} from 'react-native';
+
 
 // for the role selection screen
 import RoleSelectionScreen from '../Role-Selection/RoleSelectionScreen';
