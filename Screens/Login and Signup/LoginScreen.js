@@ -1,62 +1,120 @@
 // screens/LoginScreen.js
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Image } from 'react-native';
+import { 
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Image, 
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator 
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { supabase } from '../../config/supabaseClient';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState(false);
+  const [passwordError, setPasswordError] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
+    setLoginError('');
+    let valid = true;
+    if (!email) {
+      setEmailError(true);
+      valid = false;
+    } else {
+      setEmailError(false);
+    }
+    if (!password) {
+      setPasswordError(true);
+      valid = false;
+    } else {
+      setPasswordError(false);
+    }
+    if (!valid) return;
+
+    setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        Alert.alert('Login Error', error.message);
+        setLoginError(error.message);
       } else {
-        Alert.alert('Success', 'Login successful!');
+        setLoginError('');
         navigation.replace('RoleSelection');
       }
     } catch (err) {
-      Alert.alert('Login Error', err.message);
+      setLoginError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <LinearGradient colors={['#4c669f', '#3b5998', '#192f6a']} style={styles.gradient}>
-      <View style={styles.logoContainer}>
-        <Image 
-          source={require('../../assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </View>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>Welcome Back!</Text>
-        <TextInput
-          placeholder="Email"
-          placeholderTextColor="#ccc"
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#ccc"
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-          <Text style={styles.signupText}>Don't have an account? Sign Up</Text>
-        </TouchableOpacity>
-      </View>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('../../assets/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={styles.formContainer}>
+            <Text style={styles.title}>Welcome Back!</Text>
+            {loginError !== '' && (
+              <Text style={styles.loginErrorText}>{loginError}</Text>
+            )}
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor="#ccc"
+              style={[styles.input, emailError && styles.inputError]}
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (text) {
+                  setEmailError(false);
+                  setLoginError('');
+                }
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {emailError && <Text style={styles.errorText}>Email is required</Text>}
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#ccc"
+              style={[styles.input, passwordError && styles.inputError]}
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (text) {
+                  setPasswordError(false);
+                  setLoginError('');
+                }
+              }}
+              secureTextEntry
+            />
+            {passwordError && <Text style={styles.errorText}>Password is required</Text>}
+            <TouchableOpacity 
+              style={styles.button} 
+              onPress={handleLogin} 
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Login</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+              <Text style={styles.signupText}>Don't have an account? Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
@@ -88,9 +146,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 10,
     color: '#333',
     textAlign: 'center',
+  },
+  loginErrorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 10,
   },
   input: {
     height: 50,
@@ -98,10 +162,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 15,
-    marginBottom: 15,
+    marginBottom: 5,
     fontSize: 16,
     backgroundColor: '#fff',
     color: '#333',
+  },
+  inputError: {
+    borderColor: 'red',
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+    marginLeft: 5,
+    fontSize: 14,
   },
   button: {
     backgroundColor: '#3b5998',
@@ -109,6 +182,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     color: '#fff',
