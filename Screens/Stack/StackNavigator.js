@@ -1,6 +1,8 @@
 import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
+import PrivacyPolicyScreen from '../Riders-Folder/Navigation Screens/PrivacyPolicyScreen';
+import {Text, View} from 'react-native';
 
 // for the role selection screen
 import RoleSelectionScreen from '../Role-Selection/RoleSelectionScreen';
@@ -50,6 +52,8 @@ export default function StackNavigator({initialRoute = 'RoleSelection'}) {
         <Stack.Screen name="CNICScreen" component={CNICScreen} />
         <Stack.Screen name="LincenseScreen" component={LincenseScreen} />
         <Stack.Screen name="VehicleInfoScreen" component={VehicleInfoScreen} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: false }} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );
