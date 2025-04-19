@@ -30,6 +30,7 @@ import CarVehicleInfoScreen from '../Documentation-Folder/CarVehicleInfoScreen';
 import LoginScreen from '../Login and Signup/LoginScreen';
 import SignupScreen from '../Login and Signup/SignupScreen';
 
+import testing from '../../testing';
 const Stack = createStackNavigator();
 
 export default function StackNavigator({initialRoute = 'RoleSelection'}) {
@@ -40,6 +41,7 @@ export default function StackNavigator({initialRoute = 'RoleSelection'}) {
         screenOptions={{
           headerShown: false, // This will hide the header for all screens
         }}>
+        <Stack.Screen name="testing" component={testing} />
         <Stack.Screen name="CarvehicleInfo" component={CarVehicleInfoScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Signup" component={SignupScreen} />
