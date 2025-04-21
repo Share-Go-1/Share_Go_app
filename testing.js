@@ -1,16 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  ScrollView,
+} from 'react-native';
 import axios from 'axios';
 
 const openCageKey = 'e670c19735ce491caae138c921e2e51e';
 const openRouteServiceKey = '5b3ce3597851110001cf6248e9cc9c298c3e43d7a9cb400fbd66d825';
 
-const DistanceCalculatorScreen = () => {
+export default function Testing() {
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
   const [pickupCoords, setPickupCoords] = useState(null);
   const [destCoords, setDestCoords] = useState(null);
   const [distance, setDistance] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [vehicleType, setVehicleType] = useState('car');
+  const [fare, setFare] = useState(null);
+
+  const FUEL_PRICE = 255;
+  const Bike_BASE_FARE = 50;
+  const Car_BASE_FARE = 100;
+  const VEHICLE_CONSUMPTION = { bike: 40, car: 13 };
+  const SHAREGO_PERCENTAGE = { bike: 0.10, car: 0.10 };
+
+  const toggleVehicleType = (type) => {
+    setVehicleType(type);
+  };
 
   const getCoordinates = async (place) => {
     try {
@@ -30,30 +54,33 @@ const DistanceCalculatorScreen = () => {
         throw new Error(`No results for ${place}`);
       }
     } catch (error) {
-      console.error('OpenCage Error:', error.message);
       throw error;
     }
   };
 
   const getDrivingDistanceFromORS = async (startCoords, endCoords) => {
-    try {
-      const url = `https://api.openrouteservice.org/v2/directions/driving-car`;
-      console.log(startCoords, endCoords);
-      const response = await axios.get(url, {
-        params: {
-          api_key: openRouteServiceKey,
-          start: `${startCoords.longitude},${startCoords.latitude}`,
-          end: `${endCoords.longitude},${endCoords.latitude}`,
-        },
-      });
+    const profile = vehicleType === 'bike' ? 'cycling-regular' : 'driving-car';
+    const url = `https://api.openrouteservice.org/v2/directions/${profile}`;
 
-      const meters = response.data.features[0].properties.segments[0].distance;
-      const km = meters / 1000;
-      return km;
-    } catch (error) {
-      console.error('OpenRouteService Error:', error.message);
-      throw error;
-    }
+    const response = await axios.get(url, {
+      params: {
+        api_key: openRouteServiceKey,
+        start: `${startCoords.longitude},${startCoords.latitude}`,
+        end: `${endCoords.longitude},${endCoords.latitude}`,
+      },
+    });
+
+    const meters = response.data.features[0].properties.segments[0].distance;
+    return meters / 1000;
+  };
+
+  const calculateFare = (km) => {
+    const BASE_FARE = vehicleType === 'bike' ? Bike_BASE_FARE : Car_BASE_FARE;
+    const fuelNeeded = km / VEHICLE_CONSUMPTION[vehicleType];
+    const fuelCost = fuelNeeded * FUEL_PRICE;
+    const subtotal = BASE_FARE + fuelCost;
+    const sharegoEarning = subtotal * SHAREGO_PERCENTAGE[vehicleType];
+    return Math.round(subtotal + sharegoEarning).toFixed(2);
   };
 
   const handleCalculate = async () => {
@@ -63,6 +90,7 @@ const DistanceCalculatorScreen = () => {
     }
 
     try {
+      setLoading(true);
       const pickupLocation = await getCoordinates(pickup);
       const destLocation = await getCoordinates(destination);
 
@@ -71,78 +99,133 @@ const DistanceCalculatorScreen = () => {
 
       const realDistance = await getDrivingDistanceFromORS(pickupLocation, destLocation);
       setDistance(realDistance.toFixed(2));
+
+      const totalFare = calculateFare(realDistance);
+      setFare(totalFare);
+      setLoading(false);
     } catch (error) {
-      Alert.alert('Error calculating distance. Please try again.');
+      setLoading(false);
+      Alert.alert('Error', 'Error calculating distance. Please try again.');
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Distance Calculator (Lahore)</Text>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>ShareGo - Distance & Fare</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Enter Pickup Location"
-        value={pickup}
-        onChangeText={setPickup}
-      />
+        <View style={styles.card}>
+          <View style={styles.toggleContainer}>
+            {['car', 'bike'].map((type) => (
+              <TouchableOpacity
+                key={type}
+                style={[
+                  styles.toggleButton,
+                  vehicleType === type && styles.selectedButton,
+                ]}
+                onPress={() => toggleVehicleType(type)}
+              >
+                <Text style={[
+                  styles.toggleText,
+                  vehicleType === type && styles.selectedText,
+                ]}>
+                  {type.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Enter Destination Location"
-        value={destination}
-        onChangeText={setDestination}
-      />
+          <Text style={styles.vehicleLabel}>
+            Selected: <Text style={{ fontWeight: 'bold' }}>{vehicleType.toUpperCase()}</Text>
+          </Text>
 
-      <Button title="Calculate Distance" onPress={handleCalculate} color="#1e90ff" />
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Pickup Location"
+            value={pickup}
+            onChangeText={setPickup}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Destination Location"
+            value={destination}
+            onChangeText={setDestination}
+          />
 
-      {pickupCoords && (
-        <Text style={styles.coordText}>
-          Pickup Coordinates: {pickupCoords.latitude}, {pickupCoords.longitude}
-        </Text>
-      )}
+          <TouchableOpacity style={styles.calcButton} onPress={handleCalculate}>
+            <Text style={styles.calcButtonText}>Calculate Distance</Text>
+          </TouchableOpacity>
 
-      {destCoords && (
-        <Text style={styles.coordText}>
-          Destination Coordinates: {destCoords.latitude}, {destCoords.longitude}
-        </Text>
-      )}
+          {loading && <ActivityIndicator size="large" color="#1e90ff" style={{ marginTop: 20 }} />}
 
-      {distance && (
-        <Text style={styles.result}>Driving Distance: {distance} km</Text>
-      )}
-    </View>
+          {pickupCoords && (
+            <Text style={styles.coordText}>
+              🚩 Pickup: {pickupCoords.latitude}, {pickupCoords.longitude}
+            </Text>
+          )}
+
+          {destCoords && (
+            <Text style={styles.coordText}>
+              🎯 Destination: {destCoords.latitude}, {destCoords.longitude}
+            </Text>
+          )}
+
+          {distance && (
+            <Text style={styles.result}>Distance: {distance} km</Text>
+          )}
+
+          {fare && (
+            <Text style={styles.result}>Estimated Fare: Rs. {fare}</Text>
+          )}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
-};
-
-export default DistanceCalculatorScreen;
+}
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f1f4f6',
     padding: 20,
-    justifyContent: 'center',
+    paddingTop: 50,
+    flexGrow: 1,
+    justifyContent: 'flex-start',
   },
   title: {
-    fontSize: 22,
-    marginBottom: 20,
-    textAlign: 'center',
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#1e90ff',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 15,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
   input: {
-    backgroundColor: '#fff',
-    padding: 12,
+    backgroundColor: '#f9f9f9',
+    padding: 14,
     borderRadius: 10,
-    borderColor: '#ccc',
+    borderColor: '#ddd',
     borderWidth: 1,
     marginBottom: 15,
   },
-  coordText: {
+  calcButton: {
+    backgroundColor: '#1e90ff',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
     marginTop: 10,
+  },
+  calcButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
-    textAlign: 'center',
-    color: '#333',
   },
   result: {
     marginTop: 20,
@@ -150,5 +233,39 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'green',
     textAlign: 'center',
+  },
+  coordText: {
+    marginTop: 10,
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#444',
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  toggleButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: '#f0f0f0',
+    marginHorizontal: 8,
+  },
+  selectedButton: {
+    backgroundColor: '#1e90ff',
+  },
+  toggleText: {
+    color: '#333',
+    fontWeight: '600',
+  },
+  selectedText: {
+    color: '#fff',
+  },
+  vehicleLabel: {
+    textAlign: 'center',
+    fontSize: 16,
+    marginBottom: 10,
+    color: '#555',
   },
 });

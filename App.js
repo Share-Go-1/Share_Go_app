@@ -9,7 +9,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StackNavigator initialRoute={'testing'} />
+      <StackNavigator initialRoute={'Login'} />
     </SafeAreaView>
   );
 }
