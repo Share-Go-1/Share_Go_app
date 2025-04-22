@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
+  Button,
   StyleSheet,
   Alert,
   ActivityIndicator,
@@ -11,13 +12,11 @@ import {
   ScrollView,
 } from 'react-native';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BASE_URL } from '../../../config/config';
 
 const openCageKey = 'e670c19735ce491caae138c921e2e51e';
 const openRouteServiceKey = '5b3ce3597851110001cf6248e9cc9c298c3e43d7a9cb400fbd66d825';
 
-export default function PostRideScreen() {
+export default function Testing() {
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
   const [pickupCoords, setPickupCoords] = useState(null);
@@ -26,27 +25,12 @@ export default function PostRideScreen() {
   const [loading, setLoading] = useState(false);
   const [vehicleType, setVehicleType] = useState('car');
   const [fare, setFare] = useState(null);
-  const [riderId, setRiderId] = useState('');
 
   const FUEL_PRICE = 255;
   const Bike_BASE_FARE = 50;
   const Car_BASE_FARE = 100;
   const VEHICLE_CONSUMPTION = { bike: 40, car: 13 };
   const SHAREGO_PERCENTAGE = { bike: 0.10, car: 0.10 };
-
-  useEffect(() => {
-    const fetchRiderId = async () => {
-      try {
-        const id = await AsyncStorage.getItem('riderId');
-        if (id) {
-          setRiderId(id);
-        }
-      } catch (error) {
-        console.error('Error retrieving rider ID:', error);
-      }
-    };
-    fetchRiderId();
-  }, []);
 
   const toggleVehicleType = (type) => {
     setVehicleType(type);
@@ -96,8 +80,7 @@ export default function PostRideScreen() {
     const fuelCost = fuelNeeded * FUEL_PRICE;
     const subtotal = BASE_FARE + fuelCost;
     const sharegoEarning = subtotal * SHAREGO_PERCENTAGE[vehicleType];
-    const totalFare = Math.round(subtotal + sharegoEarning).toFixed(2);
-    return { totalFare, sharegoEarning: sharegoEarning.toFixed(2) };
+    return Math.round(subtotal + sharegoEarning).toFixed(2);
   };
 
   const handleCalculate = async () => {
@@ -111,95 +94,24 @@ export default function PostRideScreen() {
       const pickupLocation = await getCoordinates(pickup);
       const destLocation = await getCoordinates(destination);
 
-      if (!pickupLocation || !destLocation) {
-        throw new Error('Failed to retrieve coordinates');
-      }
-
       setPickupCoords(pickupLocation);
       setDestCoords(destLocation);
 
       const realDistance = await getDrivingDistanceFromORS(pickupLocation, destLocation);
       setDistance(realDistance.toFixed(2));
 
-      const { totalFare, sharegoEarning } = calculateFare(realDistance);
+      const totalFare = calculateFare(realDistance);
       setFare(totalFare);
       setLoading(false);
-
-      await uploadRideDetails(pickup, destination, pickupLocation, destLocation, realDistance, totalFare, sharegoEarning);
     } catch (error) {
       setLoading(false);
-      Alert.alert('Error', 'Error calculating distance or uploading. Please try again.');
-      console.error(error);
-    }
-  };
-
-  const uploadRideDetails = async (pickup, destination, pickupCoords, destCoords, distance, fare, sharegoEarning) => {
-    try {
-      const payload = {
-        riderId,
-        vehicleType,
-        startLocation: {
-          latitude: pickupCoords.latitude,
-          longitude: pickupCoords.longitude
-        },
-        endLocation: {
-          latitude: destCoords.latitude,
-          longitude: destCoords.longitude
-        },
-        distance,
-        totalFare: parseFloat(fare),
-        commissionFare: parseFloat(sharegoEarning),
-        pickupCoords,
-        pickup,
-        dropoff: destination,
-        destCoords
-      };
-      console.log('Sending payload:', payload);
-
-      const response = await fetch(`${BASE_URL}/riderpost`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const responseText = await response.text();
-      console.log('Raw Response:', responseText);
-
-      if (responseText.startsWith('<')) {
-        console.error('Server returned HTML error page:', responseText);
-        Alert.alert('Error', 'Server returned an error page (HTML).');
-        return;
-      }
-
-      try {
-        const result = JSON.parse(responseText);
-        if (response.ok) {
-          Alert.alert('Success', 'Ride details uploaded successfully!');
-        } else {
-          console.error('Upload failed:', result);
-          Alert.alert('Failed', result.message || 'Failed to upload ride details.');
-        }
-      } catch (error) {
-        console.error('JSON parse error:', error);
-        Alert.alert('Error', 'Failed to parse response.');
-      }
-    } catch (error) {
-      console.error('Upload failed:', error);
-      Alert.alert('Error', 'Error uploading ride details.');
+      Alert.alert('Error', 'Error calculating distance. Please try again.');
     }
   };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView contentContainerStyle={styles.container}>
-        {riderId ? (
-          <Text style={{ textAlign: 'center', marginBottom: 10 }}>
-            👤 Rider ID: {riderId}
-          </Text>
-        ) : null}
-
         <Text style={styles.title}>ShareGo - Distance & Fare</Text>
 
         <View style={styles.card}>
@@ -259,8 +171,7 @@ export default function PostRideScreen() {
           )}
 
           {distance && (
-            <Text style={styles.result}>Distance: {distance} km
-            </Text>
+            <Text style={styles.result}>Distance: {distance} km</Text>
           )}
 
           {fare && (
