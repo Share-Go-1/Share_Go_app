@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,94 @@ import {
   Switch,
   Modal,
   StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import useNotifications from '../../Riders-Folder/Navigation Screens/Notifications';
 
 const DriverSettingsScreen = ({navigation}) => {
-  const [isEnabled, setIsEnabled] = useState(false);
+  //const [isEnabled, setIsEnabled] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [driverId, setDriverId] = useState(null);
+  const {isEnabled, toggleNotifications} = useNotifications();
+
+  useEffect(() => {
+    // Fetch driver ID from AsyncStorage
+    const fetchDriverId = async () => {
+      try {
+        const storedDriverId = await AsyncStorage.getItem('driverId');
+        if (storedDriverId) {
+          setDriverId(storedDriverId);
+        }
+      } catch (error) {
+        console.error('Error fetching driver ID:', error);
+      }
+    };
+    fetchDriverId();
+  }, []);
+
+  const handleDeleteAccount = async () => {
+    if (!driverId) {
+      Alert.alert('Error', 'Driver ID not found. Please try again.');
+      return;
+    }
+
+    Alert.alert(
+      'Confirm Deletion',
+      'Are you sure you want to delete your account? This action is irreversible.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const response = await fetch(
+                `http://192.168.100.6:4000/api/drivers/${driverId}`,
+                {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                },
+              );
+
+              const responseData = await response.json();
+
+              if (response.ok) {
+                await AsyncStorage.removeItem('driverId'); // Clear stored data
+                setLoading(false);
+                Alert.alert(
+                  'Deleted',
+                  'Your account has been deleted successfully.',
+                );
+                navigation.replace('Signup'); // Redirect to Signup screen
+              } else {
+                setLoading(false);
+                Alert.alert(
+                  'Error',
+                  responseData.message ||
+                    'Failed to delete account. Please try again.',
+                );
+              }
+            } catch (error) {
+              setLoading(false);
+              Alert.alert(
+                'Error',
+                'Network error. Please check your connection.',
+              );
+              console.error('Delete Account Error:', error);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -18,7 +101,7 @@ const DriverSettingsScreen = ({navigation}) => {
         <Text style={styles.optionText}>🔔 Notifications</Text>
         <Switch
           value={isEnabled}
-          onValueChange={setIsEnabled}
+          onValueChange={toggleNotifications}
           style={styles.switch}
           trackColor={{false: '#d3d3d3', true: '#4caf50'}}
           thumbColor={isEnabled ? '#ffffff' : '#b0b0b0'}
@@ -44,7 +127,6 @@ const DriverSettingsScreen = ({navigation}) => {
               that your personal information is protected and not shared with
               third parties without your consent.
             </Text>
-
             <TouchableOpacity
               onPress={() => {
                 setModalVisible(false);
@@ -52,7 +134,6 @@ const DriverSettingsScreen = ({navigation}) => {
               }}>
               <Text style={styles.linkText}>Read Full Privacy Policy</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}>
@@ -62,35 +143,37 @@ const DriverSettingsScreen = ({navigation}) => {
         </View>
       </Modal>
 
-      <TouchableOpacity
-        style={styles.option}
-        onPress={() => console.log('Account Delete clicked')}>
-        <Text style={styles.optionText}>🗑️ Delete Account</Text>
+      <TouchableOpacity style={styles.option} onPress={handleDeleteAccount}>
+        <Text style={[styles.optionText, {color: 'red'}]}>
+          🗑️ Delete Account
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.option, styles.logout]}
-        onPress={() => console.log('Logout clicked')}>
+        onPress={() => navigation.replace('Login')}>
         <Text style={[styles.optionText, {color: 'red'}]}>🚪 Log Out</Text>
       </TouchableOpacity>
+
+      {loading && (
+        <Modal animationType="fade" transparent visible={loading}>
+          <View style={styles.loadingContainer}>
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color="#4caf50" />
+              <Text style={styles.loadingText}>Processing...</Text>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
 
-// Add your styles here
 const styles = StyleSheet.create({
-  // settings
   container: {
     flex: 1,
     padding: 20,
     backgroundColor: '#f4f4f4',
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-    textAlign: 'center',
   },
   option: {
     flexDirection: 'row',
@@ -100,8 +183,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 12,
-    elevation: 3, // Android shadow effect
-    shadowColor: '#000', // iOS shadow
+    elevation: 3,
+    shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -111,23 +194,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
   },
-  icon: {
-    fontSize: 20,
-    color: '#555',
-  },
-  logoutText: {
-    color: '#d32f2f',
-    fontWeight: 'bold',
-  },
   switch: {
     transform: [{scaleX: 1.2}, {scaleY: 1.2}],
     marginLeft: 10,
-  },
-
-  //privacy policy
-  optionText: {
-    color: 'black',
-    fontSize: 16,
   },
   modalContainer: {
     flex: 1,
@@ -156,7 +225,6 @@ const styles = StyleSheet.create({
     color: 'blue',
     textDecorationLine: 'underline',
   },
-
   closeButton: {
     backgroundColor: '#ff4d4d',
     padding: 10,
@@ -166,6 +234,24 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  loadingBox: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
   },
 });
 

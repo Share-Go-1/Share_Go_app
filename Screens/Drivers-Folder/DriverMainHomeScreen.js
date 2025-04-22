@@ -84,10 +84,10 @@ const CustomDrawerContent = props => {
         onPress={() => props.navigation.navigate('Settings')}
       />
       <DrawerItem
-        label="Driver Mode"
+        label="Rider Mode"
         onPress={() => {
-          console.log('Navigating to Driver');
-          props.navigation.navigate('Driver');
+          console.log('Navigating to Rider');
+          props.navigation.navigate('Rider');
         }}
       />
     </DrawerContentScrollView>

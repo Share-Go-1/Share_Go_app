@@ -49,7 +49,7 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <LinearGradient colors={['#4c669f', '#3b5998', '#192f6a']} style={styles.gradient}>
+    <LinearGradient colors={['#f5f5f5', '#dcdcdc', '#a9a9a9']} style={styles.gradient}>
       <KeyboardAvoidingView 
         style={{ flex: 1 }} 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -69,7 +69,7 @@ export default function LoginScreen({ navigation }) {
             )}
             <TextInput
               placeholder="Email"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#777"
               style={[styles.input, emailError && styles.inputError]}
               value={email}
               onChangeText={(text) => {
@@ -85,7 +85,7 @@ export default function LoginScreen({ navigation }) {
             {emailError && <Text style={styles.errorText}>Email is required</Text>}
             <TextInput
               placeholder="Password"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#777"
               style={[styles.input, passwordError && styles.inputError]}
               value={password}
               onChangeText={(text) => {
@@ -123,15 +123,16 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 40,
+    paddingVertical: 10,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 0,
+    marginTop: -38,
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: 300,
+    height: 300,
   },
   formContainer: {
     backgroundColor: 'rgba(255,255,255,0.9)',
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 10,
     color: '#333',
@@ -177,12 +178,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   button: {
-    backgroundColor: '#3b5998',
+    backgroundColor: 'green',
     paddingVertical: 15,
     borderRadius: 10,
     marginBottom: 10,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   buttonText: {
     color: '#fff',
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   signupText: {
-    color: '#3b5998',
+    color: 'green',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 10,
