@@ -1,139 +1,105 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
+  TextInput,
   FlatList,
+  TouchableOpacity,
+  StyleSheet,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { BASE_URL } from '../../../config/config';
 
 const SearchRideScreen = () => {
-  const [riderId, setRiderId] = useState(null);
-  const [ridePosts, setRidePosts] = useState([]);
+  const [pickup, setPickup] = useState('');
+  const [destination, setDestination] = useState('');
+  const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
-  // Fetch riderId from AsyncStorage
-  useEffect(() => {
-    const fetchRiderId = async () => {
-      try {
-        const id = await AsyncStorage.getItem('riderId');
-        if (id) {
-          setRiderId(id);
-        } else {
-          setError('Rider ID not found. Please log in.');
-        }
-      } catch (err) {
-        console.error('Error retrieving rider ID:', err);
-        setError('Failed to retrieve rider ID.');
-      }
-    };
-    fetchRiderId();
-  }, []);
-
-  // Fetch ride posts when riderId is available
-  useEffect(() => {
-    if (riderId) {
-      fetchRidePosts();
+  const handleSearch = async () => {
+    if (!pickup || !destination) {
+      Alert.alert('Error', 'Please enter both pickup and destination locations.');
+      return;
     }
-  }, [riderId]);
 
-  const fetchRidePosts = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const response = await fetch(`${BASE_URL}/riderpost/${riderId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      setLoading(true);
+      const response = await axios.get(`${BASE_URL}/searchRides`, {
+        params: {
+          pickup,
+          destination,
         },
       });
-
-      const responseText = await response.text();
-      console.log('Raw Response:', responseText);
-
-      if (responseText.startsWith('<')) {
-        console.error('Server returned HTML error page:', responseText);
-        throw new Error('Server returned an error page (HTML).');
-      }
-
-      const result = JSON.parse(responseText);
-      if (response.ok) {
-        setRidePosts(result.rides || []);
-      } else {
-        throw new Error(result.message || 'Failed to fetch ride posts.');
-      }
-    } catch (err) {
-      console.error('Error fetching ride posts:', err);
-      setError(err.message || 'Error fetching ride posts.');
+      setRides(response.data);
+    } catch (error) {
+      console.error('Error fetching rides:', error);
+      Alert.alert('Error', 'Failed to fetch rides. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Render each ride post
-  const renderRidePost = ({ item }) => (
-    <View style={styles.rideCard}>
-      <Text style={styles.rideText}>
-        <Text style={styles.label}>From: </Text>
-        {item.pickup}
-      </Text>
-      <Text style={styles.rideText}>
-        <Text style={styles.label}>To: </Text>
-        {item.dropoff}
-      </Text>
-      <Text style={styles.rideText}>
-        <Text style={styles.label}>Vehicle: </Text>
-        {item.vehicleType.toUpperCase()}
-      </Text>
-      <Text style={styles.rideText}>
-        <Text style={styles.label}>Distance: </Text>
-        {typeof item.distance === 'number' ? item.distance.toFixed(2) : '0.00'} km
-      </Text>
-      <Text style={styles.rideText}>
-        <Text style={styles.label}>Fare: </Text>
-        Rs. {typeof item.totalFare === 'number' ? item.totalFare.toFixed(2) : '0.00'}
-      </Text>
+  const renderRideItem = ({ item }) => (
+    <View style={styles.rideItem}>
+      <Text style={styles.rideText}>Pickup: {item.pickup}</Text>
+      <Text style={styles.rideText}>Dropoff: {item.dropoff}</Text>
+      <Text style={styles.rideText}>Vehicle: {item.vehicleType}</Text>
+      <Text style={styles.rideText}>Distance: {item.distance} km</Text>
+      <Text style={styles.rideText}>Fare: Rs. {item.totalFare}</Text>
     </View>
   );
+  
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>My Ride Posts</Text>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Search Available Rides</Text>
 
-      {loading && (
-        <ActivityIndicator size="large" color="#1e90ff" style={styles.loader} />
-      )}
-
-      {error && (
-        <Text style={styles.errorText}>{error}</Text>
-      )}
-
-      {!loading && !error && riderId && ridePosts.length === 0 && (
-        <Text style={styles.noPostsText}>No ride posts found.</Text>
-      )}
-
-      {!loading && !error && ridePosts.length > 0 && (
-        <FlatList
-          data={ridePosts}
-          renderItem={renderRidePost}
-          keyExtractor={(item) => item._id.toString()}
-          contentContainerStyle={styles.listContainer}
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Pickup Location"
+          value={pickup}
+          onChangeText={setPickup}
         />
-      )}
-    </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Destination Location"
+          value={destination}
+          onChangeText={setDestination}
+        />
+
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+          <Text style={styles.searchButtonText}>Search Rides</Text>
+        </TouchableOpacity>
+
+        {loading && <ActivityIndicator size="large" color="#1e90ff" style={{ marginTop: 20 }} />}
+
+        {rides.length > 0 ? (
+          <FlatList
+            data={rides}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={renderRideItem}
+            contentContainerStyle={styles.listContainer}
+          />
+        ) : (
+          !loading && <Text style={styles.noRidesText}>No rides found.</Text>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: '#f1f4f6',
     padding: 20,
     paddingTop: 50,
+    flexGrow: 1,
+    justifyContent: 'flex-start',
   },
   title: {
     fontSize: 24,
@@ -142,42 +108,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  loader: {
-    marginTop: 20,
+  input: {
+    backgroundColor: '#f9f9f9',
+    padding: 14,
+    borderRadius: 10,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    marginBottom: 15,
   },
-  errorText: {
-    fontSize: 16,
-    color: 'red',
-    textAlign: 'center',
-    marginTop: 20,
+  searchButton: {
+    backgroundColor: '#1e90ff',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
   },
-  noPostsText: {
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
-    color: '#555',
-    textAlign: 'center',
-    marginTop: 20,
   },
   listContainer: {
-    paddingBottom: 20,
+    marginTop: 20,
   },
-  rideCard: {
+  rideItem: {
     backgroundColor: '#fff',
     padding: 15,
     borderRadius: 10,
     marginBottom: 15,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    elevation: 2,
   },
   rideText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#333',
-    marginBottom: 5,
   },
-  label: {
-    fontWeight: 'bold',
-    color: '#1e90ff',
+  noRidesText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
   },
 });
 

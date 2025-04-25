@@ -151,7 +151,14 @@ const SettingsScreen = ({navigation}) => {
 
       <TouchableOpacity
         style={[styles.option, styles.logout]}
-        onPress={() => navigation.replace('Login')}>
+        onPress={async () => {
+          setLoading(true);
+          await AsyncStorage.removeItem('riderId'); // Optional: Clear session data
+          setTimeout(() => {
+            setLoading(false);
+            navigation.replace('Login');
+          }, 2000); // 2 seconds delay
+        }}>
         <Text style={[styles.optionText, {color: 'red'}]}>🚪 Log Out</Text>
       </TouchableOpacity>
 
