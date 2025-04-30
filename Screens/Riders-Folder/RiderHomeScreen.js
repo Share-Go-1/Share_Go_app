@@ -93,7 +93,7 @@ const CustomDrawerContent = props => {
             source={
               profileImage
                 ? {uri: profileImage}
-                : require('../../assets/default-profile.png')
+                : require('../../assets/DefaultProfile.png')
             }
             style={styles.profileImage}
           />

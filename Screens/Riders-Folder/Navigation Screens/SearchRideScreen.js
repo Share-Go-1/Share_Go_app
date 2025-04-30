@@ -17,27 +17,24 @@ import { BASE_URL } from '../../../config/config';
 const SearchRideScreen = () => {
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
-  const [rides, setRides] = useState([]);
+  const [driverRides, setDriverRides] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
-    if (!pickup || !destination) {
+    if (!pickup.trim() || !destination.trim()) {
       Alert.alert('Error', 'Please enter both pickup and destination locations.');
       return;
     }
 
     try {
       setLoading(true);
-      const response = await axios.get(`${BASE_URL}/searchRides`, {
-        params: {
-          pickup,
-          destination,
-        },
+      const response = await axios.get(`${BASE_URL}/searchDriverRides`, {
+        params: { pickup, destination },
       });
-      setRides(response.data);
+      setDriverRides(response.data || []);
     } catch (error) {
-      console.error('Error fetching rides:', error);
-      Alert.alert('Error', 'Failed to fetch rides. Please try again.');
+      console.error('Error fetching driver rides:', error);
+      Alert.alert('Error', 'Failed to fetch driver rides. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -52,12 +49,11 @@ const SearchRideScreen = () => {
       <Text style={styles.rideText}>Fare: Rs. {item.totalFare}</Text>
     </View>
   );
-  
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Search Available Rides</Text>
+        <Text style={styles.title}>Search Driver's Posted Rides</Text>
 
         <TextInput
           style={styles.input}
@@ -78,15 +74,17 @@ const SearchRideScreen = () => {
 
         {loading && <ActivityIndicator size="large" color="#1e90ff" style={{ marginTop: 20 }} />}
 
-        {rides.length > 0 ? (
+        {!loading && driverRides.length === 0 && (
+          <Text style={styles.noRidesText}>No driver's posted rides found.</Text>
+        )}
+
+        {driverRides.length > 0 && (
           <FlatList
-            data={rides}
-            keyExtractor={(item, index) => index.toString()}
+            data={driverRides}
+            keyExtractor={(item) => item._id}
             renderItem={renderRideItem}
             contentContainerStyle={styles.listContainer}
           />
-        ) : (
-          !loading && <Text style={styles.noRidesText}>No rides found.</Text>
         )}
       </ScrollView>
     </KeyboardAvoidingView>

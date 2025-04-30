@@ -27,6 +27,7 @@ export default function PostRideScreen() {
   const [vehicleType, setVehicleType] = useState('car');
   const [fare, setFare] = useState(null);
   const [riderId, setRiderId] = useState('');
+  const [postedRides, setPostedRides] = useState([]);
 
   const FUEL_PRICE = 255;
   const Bike_BASE_FARE = 50;
@@ -123,9 +124,30 @@ export default function PostRideScreen() {
 
       const { totalFare, sharegoEarning } = calculateFare(realDistance);
       setFare(totalFare);
-      setLoading(false);
 
-      await uploadRideDetails(pickup, destination, pickupLocation, destLocation, realDistance, totalFare, sharegoEarning);
+      await uploadRideDetails(
+        pickup,
+        destination,
+        pickupLocation,
+        destLocation,
+        realDistance,
+        totalFare,
+        sharegoEarning
+      );
+
+      // Add to local posted rides
+      setPostedRides(prev => [
+        ...prev,
+        {
+          pickup,
+          destination,
+          distance: realDistance.toFixed(2),
+          totalFare,
+          sharegoEarning,
+        }
+      ]);
+
+      setLoading(false);
     } catch (error) {
       setLoading(false);
       Alert.alert('Error', 'Error calculating distance or uploading. Please try again.');
@@ -133,7 +155,15 @@ export default function PostRideScreen() {
     }
   };
 
-  const uploadRideDetails = async (pickup, destination, pickupCoords, destCoords, distance, fare, sharegoEarning) => {
+  const uploadRideDetails = async (
+    pickup,
+    destination,
+    pickupCoords,
+    destCoords,
+    distance,
+    fare,
+    sharegoEarning
+  ) => {
     try {
       const payload = {
         riderId,
@@ -204,7 +234,7 @@ export default function PostRideScreen() {
 
         <View style={styles.card}>
           <View style={styles.toggleContainer}>
-            {['car', 'bike'].map((type) => (
+            {['car', 'bike'].map(type => (
               <TouchableOpacity
                 key={type}
                 style={[
@@ -259,14 +289,28 @@ export default function PostRideScreen() {
           )}
 
           {distance && (
-            <Text style={styles.result}>Distance: {distance} km
-            </Text>
+            <Text style={styles.result}>Distance: {distance} km</Text>
           )}
 
           {fare && (
             <Text style={styles.result}>Estimated Fare: Rs. {fare}</Text>
           )}
         </View>
+
+        {/* Posted Rides Section */}
+        {postedRides.length > 0 && (
+          <View style={styles.postedRidesContainer}>
+            <Text style={styles.sectionTitle}>Posted Rides</Text>
+            {postedRides.map((ride, index) => (
+              <View style={styles.rideItem} key={index}>
+                <Text style={styles.rideText}>From: {ride.pickup}</Text>
+                <Text style={styles.rideText}>To: {ride.destination}</Text>
+                <Text style={styles.rideText}>Distance: {ride.distance} km</Text>
+                <Text style={styles.rideText}>Fare: Rs. {ride.totalFare}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -356,5 +400,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     color: '#555',
+  },
+  postedRidesContainer: {
+    marginTop: 30,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  rideItem: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    elevation: 2,
+  },
+  rideText: {
+    fontSize: 14,
+    color: '#444',
+    marginBottom: 4,
   },
 });
