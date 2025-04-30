@@ -296,21 +296,6 @@ export default function PostRideScreen() {
             <Text style={styles.result}>Estimated Fare: Rs. {fare}</Text>
           )}
         </View>
-
-        {/* Posted Rides Section */}
-        {postedRides.length > 0 && (
-          <View style={styles.postedRidesContainer}>
-            <Text style={styles.sectionTitle}>Posted Rides</Text>
-            {postedRides.map((ride, index) => (
-              <View style={styles.rideItem} key={index}>
-                <Text style={styles.rideText}>From: {ride.pickup}</Text>
-                <Text style={styles.rideText}>To: {ride.destination}</Text>
-                <Text style={styles.rideText}>Distance: {ride.distance} km</Text>
-                <Text style={styles.rideText}>Fare: Rs. {ride.totalFare}</Text>
-              </View>
-            ))}
-          </View>
-        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
