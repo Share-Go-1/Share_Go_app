@@ -21,33 +21,34 @@ const DriverSearchRideScreen = () => {
   const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
-    const trimmedPickup = pickup.trim();
-    const trimmedDestination = destination.trim();
-
-    if (!trimmedPickup || !trimmedDestination) {
-      Alert.alert('Error', 'Please enter both pickup and destination locations.');
+    const trimmedPickup = pickup.trim().toLowerCase();
+    const trimmedDestination = destination.trim().toLowerCase();
+  
+    if (!trimmedPickup && !trimmedDestination) {
+      Alert.alert('Error', 'Please enter at least pickup or destination.');
       return;
     }
-
+  
     try {
       setLoading(true);
-
-      console.log('Sending pickup:', trimmedPickup);
-      console.log('Sending dropoff:', trimmedDestination);
-
-      // Get all rides and filter manually (in case backend filtering not working)
+  
       const response = await axios.get(`${BASE_URL}/rides`);
       const allRides = response.data.rides || [];
-
-      const filteredRides = allRides.filter(ride =>
-        ride.pickup?.toLowerCase().includes(trimmedPickup.toLowerCase()) &&
-        ride.dropoff?.toLowerCase().includes(trimmedDestination.toLowerCase())
-      );
-
+  
+      const filteredRides = allRides.filter(ride => {
+        const ridePickup = ride.pickup?.toLowerCase() || '';
+        const rideDropoff = ride.dropoff?.toLowerCase() || '';
+  
+        const matchesPickup = trimmedPickup ? ridePickup.includes(trimmedPickup) : true;
+        const matchesDestination = trimmedDestination ? rideDropoff.includes(trimmedDestination) : true;
+  
+        return matchesPickup && matchesDestination;
+      });
+  
       if (filteredRides.length === 0) {
         Alert.alert('No Rides', 'No rider rides found for your search.');
       }
-
+  
       setRiderRides(filteredRides);
     } catch (error) {
       console.error('Error fetching rider rides:', error?.response || error);
@@ -59,6 +60,7 @@ const DriverSearchRideScreen = () => {
       setLoading(false);
     }
   };
+  
 
   const renderRideItem = ({item}) => (
     <View style={styles.rideItem}>

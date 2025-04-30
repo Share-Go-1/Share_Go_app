@@ -122,22 +122,39 @@ export default function DriverPostRideScreen() {
       pickup,
       dropoff: destination
     };
+  
     try {
       const res = await fetch(`${BASE_URL}/driverpost`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-      const result = await response.json();
-      console.log(result);
+  
+      // Check if the response is OK (status code 200-299)
+      if (!res.ok) {
+        Alert.alert('Error', 'Failed to post ride. Please try again.');
+        throw new Error('Failed to post ride');
+      }
+  
+      const data = await res.json();
+  
+      // Handle success - Display success message
+      if (data.message === 'Ride post created successfully') {
+        Alert.alert('Success', 'Ride posted successfully!');
+      } else {
+        Alert.alert('Error', 'Failed to post ride. Please try again.');
+      }
+  
     } catch (error) {
       console.error('Error creating driver post:', error);
     }
   };
+  
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView contentContainerStyle={styles.container}>
-        {driverId ? <Text style={styles.idText}>🚗 Driver ID: {driverId}</Text> : null}
-        <Text style={styles.title}>Post a Ride (Driver)</Text>
+        <Text style={styles.title}>Post a Ride</Text>
 
         <View style={styles.card}>
           <View style={styles.toggleContainer}>
@@ -168,19 +185,6 @@ export default function DriverPostRideScreen() {
           {fare         && <Text style={styles.result}>Fare: Rs. {fare}</Text>}
         </View>
 
-        {postedRides.length>0 && (
-          <View style={styles.postedContainer}>
-            <Text style={styles.section}>Your Posts</Text>
-            {postedRides.map((r,i)=>(
-              <View key={i} style={styles.item}>
-                <Text style={styles.itemTxt}>From: {r.pickup}</Text>
-                <Text style={styles.itemTxt}>To: {r.destination}</Text>
-                <Text style={styles.itemTxt}>Dist: {r.distance} km</Text>
-                <Text style={styles.itemTxt}>Fare: Rs {r.totalFare}</Text>
-              </View>
-            ))}
-          </View>
-        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

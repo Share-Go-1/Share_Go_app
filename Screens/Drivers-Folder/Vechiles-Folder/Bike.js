@@ -179,21 +179,7 @@ const BikeScreen = ({ navigation }) => {
         </Text>
       </TouchableOpacity>
 
-      {allSectionsCompleted && (
-        <ScrollView style={styles.dataContainer}>
-          <Text style={styles.sectionTitle}>Basic Info:</Text>
-          <Text>{JSON.stringify(basicInfo, null, 2)}</Text>
 
-          <Text style={styles.sectionTitle}>CNIC:</Text>
-          <Text>{JSON.stringify(cnic, null, 2)}</Text>
-
-          <Text style={styles.sectionTitle}>License Info:</Text>
-          <Text>{JSON.stringify(license, null, 2)}</Text>
-
-          <Text style={styles.sectionTitle}>Vehicle Info:</Text>
-          <Text>{JSON.stringify(vehicleInfo, null, 2)}</Text>
-        </ScrollView>
-      )}
     </View>
   );
 };

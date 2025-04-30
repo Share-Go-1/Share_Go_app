@@ -25,7 +25,7 @@ const DriverSelectionScreen = ({navigation}) => {
       console.log('Navigating to CarScreen');
       navigation.navigate('Car_Screen');
     } else {
-      Alert.alert('Please select a veh icle before proceeding.');
+      Alert.alert('Please select a vehicle before proceeding.');
     }
   };
   
