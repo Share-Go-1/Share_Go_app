@@ -21,17 +21,17 @@ const SearchRideScreen = () => {
   const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
-    if (!pickup.trim() || !destination.trim()) {
-      Alert.alert('Error', 'Please enter both pickup and destination locations.');
+    if (!pickup.trim() && !destination.trim()) {
+      Alert.alert('Error', 'Please enter either a pickup or destination location to search.');
       return;
     }
 
     try {
       setLoading(true);
-      const response = await axios.get(`${BASE_URL}/searchDriverRides`, {
-        params: { pickup, destination },
+      const response = await axios.get(`${BASE_URL}/driverpost`, {
+        params: { pickup, dropoff: destination },
       });
-      setDriverRides(response.data || []);
+      setDriverRides(response.data.posts || []);
     } catch (error) {
       console.error('Error fetching driver rides:', error);
       Alert.alert('Error', 'Failed to fetch driver rides. Please try again.');
@@ -53,8 +53,6 @@ const SearchRideScreen = () => {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Search Driver's Posted Rides</Text>
-
         <TextInput
           style={styles.input}
           placeholder="Enter Pickup Location"
