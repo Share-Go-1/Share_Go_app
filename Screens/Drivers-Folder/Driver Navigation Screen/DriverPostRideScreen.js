@@ -13,6 +13,7 @@ import {
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASE_URL } from '../../../config/config';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 const openCageKey = 'e670c19735ce491caae138c921e2e51e';
 const openRouteServiceKey = '5b3ce3597851110001cf6248e9cc9c298c3e43d7a9cb400fbd66d825';
@@ -28,6 +29,8 @@ export default function DriverPostRideScreen() {
   const [fare, setFare] = useState(null);
   const [driverId, setDriverId] = useState('');
   const [postedRides, setPostedRides] = useState([]);
+  const [selectedDateTime, setSelectedDateTime] = useState(null);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
   const FUEL_PRICE = 255;
   const Bike_BASE_FARE = 50;
@@ -48,6 +51,19 @@ export default function DriverPostRideScreen() {
   }, []);
 
   const toggleVehicleType = (type) => setVehicleType(type);
+
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisibility(false);
+  };
+
+  const handleConfirm = (date) => {
+    setSelectedDateTime(date);
+    hideDatePicker();
+  };
 
   const getCoordinates = async (place) => {
     const { data } = await axios.get(
@@ -80,8 +96,8 @@ export default function DriverPostRideScreen() {
   };
 
   const handleCalculate = async () => {
-    if (!pickup || !destination) {
-      return Alert.alert('Error', 'Please enter both pickup and destination.');
+    if (!pickup || !destination || !selectedDateTime) {
+      return Alert.alert('Error', 'Please enter pickup, destination, and select date & time.');
     }
     try {
       setLoading(true);
@@ -96,10 +112,19 @@ export default function DriverPostRideScreen() {
       const { totalFare, commission } = calculateFare(kms);
       setFare(totalFare);
 
-      await uploadRideDetails(start, end, kms, totalFare, commission);
+      await uploadRideDetails(start, end, kms, totalFare, commission, selectedDateTime);
 
       setPostedRides(prev => [
-        { pickup, destination, distance: kms.toFixed(2), totalFare },
+        {
+          pickup,
+          destination,
+          distance: kms.toFixed(2),
+          totalFare,
+          dateTime: selectedDateTime.toISOString(),
+          booked: false,
+          riderId: null,
+          riderName: null,
+        },
         ...prev
       ]);
     } catch (err) {
@@ -110,7 +135,7 @@ export default function DriverPostRideScreen() {
     }
   };
 
-  const uploadRideDetails = async (start, end, km, totalFare, commission) => {
+  const uploadRideDetails = async (start, end, km, totalFare, commission, dateTime) => {
     const payload = {
       driverId,
       vehicleType,
@@ -120,36 +145,48 @@ export default function DriverPostRideScreen() {
       totalFare: parseFloat(totalFare),
       commissionFare: parseFloat(commission),
       pickup,
-      dropoff: destination
+      dropoff: destination,
+      rideDateTime: dateTime.toISOString(),
+      booked: false,
+      riderId: null,
+      riderName: null,
     };
-  
+
     try {
       const res = await fetch(`${BASE_URL}/driverpost`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-  
-      // Check if the response is OK (status code 200-299)
+
+      const responseText = await res.text();
+      console.log('Raw Response:', responseText);
+
       if (!res.ok) {
-        Alert.alert('Error', 'Failed to post ride. Please try again.');
+        let errorMessage = 'Failed to post ride.';
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          console.error('Failed to parse error response:', e);
+        }
+        Alert.alert('Error', errorMessage);
         throw new Error('Failed to post ride');
       }
-  
-      const data = await res.json();
-  
-      // Handle success - Display success message
+
+      const data = await JSON.parse(responseText);
+
       if (data.message === 'Ride post created successfully') {
         Alert.alert('Success', 'Ride posted successfully!');
       } else {
-        Alert.alert('Error', 'Failed to post ride. Please try again.');
+        Alert.alert('Error', data.error || 'Failed to post ride.');
       }
-  
+
     } catch (error) {
       console.error('Error creating driver post:', error);
+      Alert.alert('Error', 'Failed to post ride: Network or server error.');
     }
   };
-  
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
@@ -158,12 +195,12 @@ export default function DriverPostRideScreen() {
 
         <View style={styles.card}>
           <View style={styles.toggleContainer}>
-            {['car','bike'].map(type => (
+            {['car', 'bike'].map(type => (
               <TouchableOpacity
                 key={type}
-                style={[styles.toggleBtn, vehicleType===type && styles.selectedBtn]}
-                onPress={()=>toggleVehicleType(type)}>
-                <Text style={[styles.toggleTxt, vehicleType===type&& styles.selectedTxt]}>
+                style={[styles.toggleBtn, vehicleType === type && styles.selectedBtn]}
+                onPress={() => toggleVehicleType(type)}>
+                <Text style={[styles.toggleTxt, vehicleType === type && styles.selectedTxt]}>
                   {type.toUpperCase()}
                 </Text>
               </TouchableOpacity>
@@ -174,40 +211,88 @@ export default function DriverPostRideScreen() {
           <TextInput style={styles.input} placeholder="Pickup Location" value={pickup} onChangeText={setPickup} />
           <TextInput style={styles.input} placeholder="Destination Location" value={destination} onChangeText={setDestination} />
 
+          <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
+            <Text style={styles.dateButtonText}>
+              {selectedDateTime
+                ? selectedDateTime.toLocaleString()
+                : 'Select Date & Time'}
+            </Text>
+          </TouchableOpacity>
+
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="datetime"
+            onConfirm={handleConfirm}
+            onCancel={hideDatePicker}
+            minimumDate={new Date()}
+          />
+
           <TouchableOpacity style={styles.button} onPress={handleCalculate}>
             <Text style={styles.buttonTxt}>Calculate & Post</Text>
           </TouchableOpacity>
 
-          {loading && <ActivityIndicator size="large" color="#1e90ff" style={{marginTop:20}} />}
+          {loading && <ActivityIndicator size="large" color="#1e90ff" style={{ marginTop: 20 }} />}
           {pickupCoords && <Text style={styles.coord}>📍 {pickupCoords.latitude}, {pickupCoords.longitude}</Text>}
-          {destCoords   && <Text style={styles.coord}>🏁 {destCoords.latitude}, {destCoords.longitude}</Text>}
-          {distance     && <Text style={styles.result}>Distance: {distance} km</Text>}
-          {fare         && <Text style={styles.result}>Fare: Rs. {fare}</Text>}
+          {destCoords && <Text style={styles.coord}>🏁 {destCoords.latitude}, {destCoords.longitude}</Text>}
+          {distance && <Text style={styles.result}>Distance: {distance} km</Text>}
+          {fare && <Text style={styles.result}>Fare: Rs. {fare}</Text>}
+          {selectedDateTime && (
+            <Text style={styles.result}>
+              Scheduled: {selectedDateTime.toLocaleString()}
+            </Text>
+          )}
         </View>
 
+        {postedRides.length > 0 && (
+          <View style={styles.postedContainer}>
+            <Text style={styles.section}>Posted Rides</Text>
+            {postedRides.map((ride, index) => (
+              <View key={index} style={styles.item}>
+                <Text style={styles.itemTxt}>Pickup: {ride.pickup}</Text>
+                <Text style={styles.itemTxt}>Destination: {ride.destination}</Text>
+                <Text style={styles.itemTxt}>Distance: {ride.distance} km</Text>
+                <Text style={styles.itemTxt}>Fare: Rs. {ride.totalFare}</Text>
+                <Text style={styles.itemTxt}>
+                  Scheduled: {new Date(ride.dateTime).toLocaleString()}
+                </Text>
+                <Text style={styles.itemTxt}>
+                  Status: {ride.booked ? 'Booked' : 'Unbooked'}
+                </Text>
+                <Text style={styles.itemTxt}>
+                  Rider ID: {ride.riderId || 'Not Assigned'}
+                </Text>
+                <Text style={styles.itemTxt}>
+                  Rider Name: {ride.riderName || 'Not Assigned'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow:1, padding:20, paddingTop:50, backgroundColor:'#f1f4f6' },
-  idText: { textAlign:'center', marginBottom:10, color:'#555' },
-  title:  { fontSize:24, fontWeight:'bold', color:'#1e90ff', textAlign:'center', marginBottom:20 },
-  card:   { backgroundColor:'#fff', borderRadius:15, padding:20, elevation:4, shadowColor:'#000', shadowOpacity:0.1, shadowRadius:10 },
-  toggleContainer: { flexDirection:'row', justifyContent:'center', marginBottom:15 },
-  toggleBtn:       { padding:10, borderRadius:10, backgroundColor:'#eee', marginHorizontal:8 },
-  selectedBtn:     { backgroundColor:'#1e90ff' },
-  toggleTxt:       { fontWeight:'600', color:'#333' },
-  selectedTxt:     { color:'#fff' },
-  label:           { textAlign:'center', marginBottom:10, color:'#555' },
-  input:           { backgroundColor:'#f9f9f9', borderRadius:10, padding:14, borderWidth:1, borderColor:'#ddd', marginBottom:15 },
-  button:          { backgroundColor:'#1e90ff', padding:14, borderRadius:10, alignItems:'center', marginTop:10 },
-  buttonTxt:       { color:'#fff', fontSize:16, fontWeight:'bold' },
-  coord:           { marginTop:10, fontSize:14, textAlign:'center', color:'#444' },
-  result:          { marginTop:20, fontSize:18, fontWeight:'bold', color:'green', textAlign:'center' },
-  postedContainer: { marginTop:30, paddingTop:10, borderTopWidth:1, borderTopColor:'#ccc' },
-  section:         { fontSize:20, fontWeight:'bold', marginBottom:10, color:'#333' },
-  item:            { backgroundColor:'#fff', padding:15, borderRadius:10, marginBottom:10, elevation:2 },
-  itemTxt:         { fontSize:14, color:'#444', marginBottom:4 }
+  container: { flexGrow: 1, padding: 20, paddingTop: 50, backgroundColor: '#f1f4f6' },
+  idText: { textAlign: 'center', marginBottom: 10, color: '#555' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#1e90ff', textAlign: 'center', marginBottom: 20 },
+  card: { backgroundColor: '#fff', borderRadius: 15, padding: 20, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
+  toggleContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 15 },
+  toggleBtn: { padding: 10, borderRadius: 10, backgroundColor: '#eee', marginHorizontal: 8 },
+  selectedBtn: { backgroundColor: '#1e90ff' },
+  toggleTxt: { fontWeight: '600', color: '#333' },
+  selectedTxt: { color: '#fff' },
+  label: { textAlign: 'center', marginBottom: 10, color: '#555' },
+  input: { backgroundColor: '#f9f9f9', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#ddd', marginBottom: 15 },
+  dateButton: { backgroundColor: '#f9f9f9', padding: 14, borderRadius: 10, borderColor: '#ddd', borderWidth: 1, marginBottom: 15, alignItems: 'center' },
+  dateButtonText: { color: '#333', fontSize: 16 },
+  button: { backgroundColor: '#1e90ff', padding: 14, borderRadius: 10, alignItems: 'center', marginTop: 10 },
+  buttonTxt: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  coord: { marginTop: 10, fontSize: 14, textAlign: 'center', color: '#444' },
+  result: { marginTop: 20, fontSize: 18, fontWeight: 'bold', color: 'green', textAlign: 'center' },
+  postedContainer: { marginTop: 30, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#ccc' },
+  section: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#333' },
+  item: { backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 10, elevation: 2 },
+  itemTxt: { fontSize: 14, color: '#444', marginBottom: 4 },
 });

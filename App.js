@@ -4,6 +4,7 @@ import { SafeAreaView, StyleSheet } from 'react-native';
 import StackNavigator from './Screens/Stack/StackNavigator';
 import { requestNotificationPermission, scheduleNotification, scheduleRecurringNotifications } from '../Share_Go_app/android/app/src/utils/notificationService';
 
+
 export default function App() {
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StackNavigator initialRoute={'Login'} />
+      <StackNavigator initialRoute={'PostRideScreen'} />
     </SafeAreaView>
   );
 }
