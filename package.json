@@ -35,6 +35,7 @@
     "react-native-linear-gradient": "^2.8.3",
     "react-native-linking": "^0.0.0",
     "react-native-mmkv": "^3.2.0",
+    "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-paper": "^5.13.1",
     "react-native-permissions": "^5.2.6",
     "react-native-picker-select": "^9.3.1",

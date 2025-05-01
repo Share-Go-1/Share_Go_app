@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { BASE_URL } from '../../../config/config';
 
 const openCageKey = 'e670c19735ce491caae138c921e2e51e';
@@ -28,6 +29,8 @@ export default function PostRideScreen() {
   const [fare, setFare] = useState(null);
   const [riderId, setRiderId] = useState('');
   const [postedRides, setPostedRides] = useState([]);
+  const [selectedDateTime, setSelectedDateTime] = useState(null);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
   const FUEL_PRICE = 255;
   const Bike_BASE_FARE = 50;
@@ -51,6 +54,19 @@ export default function PostRideScreen() {
 
   const toggleVehicleType = (type) => {
     setVehicleType(type);
+  };
+
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisibility(false);
+  };
+
+  const handleConfirm = (date) => {
+    setSelectedDateTime(date);
+    hideDatePicker();
   };
 
   const getCoordinates = async (place) => {
@@ -102,8 +118,8 @@ export default function PostRideScreen() {
   };
 
   const handleCalculate = async () => {
-    if (!pickup || !destination) {
-      Alert.alert('Please enter both Pickup and Destination');
+    if (!pickup || !destination || !selectedDateTime) {
+      Alert.alert('Please enter Pickup, Destination, and select Date & Time');
       return;
     }
 
@@ -132,11 +148,11 @@ export default function PostRideScreen() {
         destLocation,
         realDistance,
         totalFare,
-        sharegoEarning
+        sharegoEarning,
+        selectedDateTime
       );
 
-      // Add to local posted rides
-      setPostedRides(prev => [
+      setPostedRides((prev) => [
         ...prev,
         {
           pickup,
@@ -144,7 +160,10 @@ export default function PostRideScreen() {
           distance: realDistance.toFixed(2),
           totalFare,
           sharegoEarning,
-        }
+          dateTime: selectedDateTime.toISOString(),
+          booked: false, // Default unbooked
+          driverId: null, // No driver initially
+        },
       ]);
 
       setLoading(false);
@@ -162,7 +181,8 @@ export default function PostRideScreen() {
     destCoords,
     distance,
     fare,
-    sharegoEarning
+    sharegoEarning,
+    dateTime
   ) => {
     try {
       const payload = {
@@ -170,11 +190,11 @@ export default function PostRideScreen() {
         vehicleType,
         startLocation: {
           latitude: pickupCoords.latitude,
-          longitude: pickupCoords.longitude
+          longitude: pickupCoords.longitude,
         },
         endLocation: {
           latitude: destCoords.latitude,
-          longitude: destCoords.longitude
+          longitude: destCoords.longitude,
         },
         distance,
         totalFare: parseFloat(fare),
@@ -182,7 +202,11 @@ export default function PostRideScreen() {
         pickupCoords,
         pickup,
         dropoff: destination,
-        destCoords
+        destCoords,
+        rideDateTime: dateTime.toISOString(),
+        booked: false, // Default unbooked
+        driverId: null, // No driver initially
+        driverName: null, // Add driverName
       };
       console.log('Sending payload:', payload);
 
@@ -234,19 +258,15 @@ export default function PostRideScreen() {
 
         <View style={styles.card}>
           <View style={styles.toggleContainer}>
-            {['car', 'bike'].map(type => (
+            {['car', 'bike'].map((type) => (
               <TouchableOpacity
                 key={type}
-                style={[
-                  styles.toggleButton,
-                  vehicleType === type && styles.selectedButton,
-                ]}
+                style={[styles.toggleButton, vehicleType === type && styles.selectedButton]}
                 onPress={() => toggleVehicleType(type)}
               >
-                <Text style={[
-                  styles.toggleText,
-                  vehicleType === type && styles.selectedText,
-                ]}>
+                <Text
+                  style={[styles.toggleText, vehicleType === type && styles.selectedText]}
+                >
                   {type.toUpperCase()}
                 </Text>
               </TouchableOpacity>
@@ -270,11 +290,29 @@ export default function PostRideScreen() {
             onChangeText={setDestination}
           />
 
+          <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
+            <Text style={styles.dateButtonText}>
+              {selectedDateTime
+                ? selectedDateTime.toLocaleString()
+                : 'Select Date & Time'}
+            </Text>
+          </TouchableOpacity>
+
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="datetime"
+            onConfirm={handleConfirm}
+            onCancel={hideDatePicker}
+            minimumDate={new Date()}
+          />
+
           <TouchableOpacity style={styles.calcButton} onPress={handleCalculate}>
             <Text style={styles.calcButtonText}>Calculate Distance</Text>
           </TouchableOpacity>
 
-          {loading && <ActivityIndicator size="large" color="#1e90ff" style={{ marginTop: 20 }} />}
+          {loading && (
+            <ActivityIndicator size="large" color="#1e90ff" style={{ marginTop: 20 }} />
+          )}
 
           {pickupCoords && (
             <Text style={styles.coordText}>
@@ -288,14 +326,43 @@ export default function PostRideScreen() {
             </Text>
           )}
 
-          {distance && (
-            <Text style={styles.result}>Distance: {distance} km</Text>
-          )}
+          {distance && <Text style={styles.result}>Distance: {distance} km</Text>}
 
-          {fare && (
-            <Text style={styles.result}>Estimated Fare: Rs. {fare}</Text>
+          {fare && <Text style={styles.result}>Estimated Fare: Rs. {fare}</Text>}
+
+          {selectedDateTime && (
+            <Text style={styles.result}>
+              Scheduled: {selectedDateTime.toLocaleString()}
+            </Text>
           )}
         </View>
+
+        {/* Display Posted Rides */}
+        {postedRides.length > 0 && (
+          <View style={styles.postedRidesContainer}>
+            <Text style={styles.sectionTitle}>Posted Rides</Text>
+            {postedRides.map((ride, index) => (
+              <View key={index} style={styles.rideItem}>
+                <Text style={styles.rideText}>Pickup: {ride.pickup}</Text>
+                <Text style={styles.rideText}>Destination: {ride.destination}</Text>
+                <Text style={styles.rideText}>Distance: {ride.distance} km</Text>
+                <Text style={styles.rideText}>Fare: Rs. {ride.totalFare}</Text>
+                <Text style={styles.rideText}>
+                  Scheduled: {new Date(ride.dateTime).toLocaleString()}
+                </Text>
+                <Text style={styles.rideText}>
+                  Status: {ride.booked ? 'Booked' : 'Unbooked'}
+                </Text>
+                <Text style={styles.rideText}>
+                  Driver ID: {ride.driverId || 'Not Assigned'}
+                </Text>
+                <Text style={styles.rideText}>
+                  Driver Name: {ride.driverName || 'Not Assigned'}
+                </Text>  
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -385,6 +452,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     color: '#555',
+  },
+  dateButton: {
+    backgroundColor: '#f9f9f9',
+    padding: 14,
+    borderRadius: 10,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  dateButtonText: {
+    color: '#333',
+    fontSize: 16,
   },
   postedRidesContainer: {
     marginTop: 30,
