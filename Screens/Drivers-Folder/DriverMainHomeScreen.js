@@ -23,7 +23,6 @@ import axios from 'axios';
 import {createStackNavigator} from '@react-navigation/stack';
 import SettingsScreen from '../Drivers-Folder/Driver Navigation Screen/DriverSettingsScreen';
 
-// Screens
 import HomeScreen from './Driver Navigation Screen/DriverHomeScreen';
 import ConfirmBookingScreen from './Driver Navigation Screen/DriverConfirmBookingScreen';
 import PostRideScreen from './Driver Navigation Screen/DriverPostRideScreen';
@@ -34,7 +33,6 @@ const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 const Tab = createBottomTabNavigator();
 
-// Custom Drawer Content updated to use driverName and setDriverName from props
 const CustomDrawerContent = props => {
   const [profileImage, setProfileImage] = useState(null);
   const {driverName, setDriverName} = props;
@@ -94,7 +92,6 @@ const CustomDrawerContent = props => {
   );
 };
 
-// Bottom Tab Navigator remains unchanged
 const BottomTabNavigator = () => (
   <Tab.Navigator
     screenOptions={{
@@ -156,7 +153,6 @@ const BottomTabNavigator = () => (
   </Tab.Navigator>
 );
 
-// Driver Stack Navigator remains unchanged
 const DriverStackNavigator = () => (
   <Stack.Navigator>
     <Stack.Screen
@@ -167,7 +163,6 @@ const DriverStackNavigator = () => (
   </Stack.Navigator>
 );
 
-// AppDrawer now accepts driverName and setDriverName as props and passes them to CustomDrawerContent
 const AppDrawer = ({driverName, setDriverName}) => {
   return (
     <Drawer.Navigator
@@ -207,7 +202,6 @@ const AppDrawer = ({driverName, setDriverName}) => {
   );
 };
 
-// The top-level App component now manages the driver's state and fetches driver details
 export default function App() {
   const [driverId, setDriverId] = useState(null);
   const [driverName, setDriverName] = useState('');
@@ -226,10 +220,12 @@ export default function App() {
     };
     fetchDriverId();
   }, []);
+  
 
   const fetchDriverDetails = async id => {
     try {
       const response = await axios.get(`${BASE_URL}/drivers/${id}`);
+      console.log('Driver Details:', id);
       setDriverName(response.data.basicInfo.firstName);
       console.log(response);
     } catch (error) {
@@ -237,6 +233,7 @@ export default function App() {
     }
   };
 
+  
   return <AppDrawer driverName={driverName} setDriverName={setDriverName} />;
 }
 

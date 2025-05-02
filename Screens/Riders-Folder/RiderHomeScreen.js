@@ -152,6 +152,7 @@ const BottomTabNavigator = () => (
         ),
       }}
     />
+    
     <Tab.Screen
       name="PostRide"
       component={PostRideScreen}

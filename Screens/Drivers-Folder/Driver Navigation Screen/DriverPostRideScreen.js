@@ -243,31 +243,6 @@ export default function DriverPostRideScreen() {
           )}
         </View>
 
-        {postedRides.length > 0 && (
-          <View style={styles.postedContainer}>
-            <Text style={styles.section}>Posted Rides</Text>
-            {postedRides.map((ride, index) => (
-              <View key={index} style={styles.item}>
-                <Text style={styles.itemTxt}>Pickup: {ride.pickup}</Text>
-                <Text style={styles.itemTxt}>Destination: {ride.destination}</Text>
-                <Text style={styles.itemTxt}>Distance: {ride.distance} km</Text>
-                <Text style={styles.itemTxt}>Fare: Rs. {ride.totalFare}</Text>
-                <Text style={styles.itemTxt}>
-                  Scheduled: {new Date(ride.dateTime).toLocaleString()}
-                </Text>
-                <Text style={styles.itemTxt}>
-                  Status: {ride.booked ? 'Booked' : 'Unbooked'}
-                </Text>
-                <Text style={styles.itemTxt}>
-                  Rider ID: {ride.riderId || 'Not Assigned'}
-                </Text>
-                <Text style={styles.itemTxt}>
-                  Rider Name: {ride.riderName || 'Not Assigned'}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
