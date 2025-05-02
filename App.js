@@ -21,7 +21,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StackNavigator initialRoute={'PostRideScreen'} />
+      <StackNavigator initialRoute={'Login'} />
     </SafeAreaView>
   );
 }

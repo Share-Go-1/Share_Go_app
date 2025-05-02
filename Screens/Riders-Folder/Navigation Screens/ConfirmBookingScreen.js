@@ -1,93 +1,248 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import React, {useState, useEffect, useCallback} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+} from 'react-native';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {BASE_URL} from '../../../config/config';
 
-const ConfirmBookingScreen = ({ route, navigation }) => {
-  const [ride, setRide] = useState(null);
+const ConfirmBookingScreen = ({route, navigation}) => {
+  const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [riderId, setRiderId] = useState(null);
+  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (route.params?.ride) {
-      setRide(route.params.ride);
-    }
+    const initializeRiderId = async () => {
+      try {
+        let storedRiderId = await AsyncStorage.getItem('riderId');
+        console.log('Rider ID from AsyncStorage:', storedRiderId);
+
+        if (!storedRiderId && route.params?.riderId) {
+          storedRiderId = route.params.riderId;
+          console.log('Rider ID from route.params:', storedRiderId);
+          await AsyncStorage.setItem('riderId', storedRiderId);
+        }
+
+        if (!storedRiderId) {
+          throw new Error('Rider ID not found. Please log in.');
+        }
+
+        setRiderId(storedRiderId);
+        console.log('Set Rider ID:', storedRiderId);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    initializeRiderId();
   }, [route.params]);
 
-  const handlePayment = async (paymentMethod) => {
-    if (!ride) {
-      Alert.alert('No Ride Selected', 'Please select a ride before proceeding to payment.');
-      return;
-    }
+  const fetchRides = useCallback(async () => {
+    if (!riderId) return;
 
     setLoading(true);
     try {
-      const response = await axios.post('https://your-backend.com/initiate-payment', {
-        amount: ride.totalFare,
-        paymentMethod,
+      const response = await axios.get(`${BASE_URL}/riderpost/${riderId}`, {
+        params: {booked: false},
       });
+      console.log('Fetch Rides Response:', response.data);
+      setRides(response.data.rides); // Assuming response.data.rides
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to fetch rides.';
+      console.error(
+        'Fetch Rides Error Details:',
+        error.message,
+        error.response?.data,
+      );
+      Alert.alert('Error', message);
+      setRides([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [riderId]);
+
+  useEffect(() => {
+    fetchRides();
+  }, [fetchRides]);
+
+  useEffect(() => {
+    console.log('Rides state:', rides);
+  }, [rides]);
+
+  const onRefresh = useCallback(async () => {
+    if (!riderId) return;
+
+    setRefreshing(true);
+    try {
+      const response = await axios.get(`${BASE_URL}/riderpost/${riderId}`, {
+        params: {booked: false},
+      });
+      console.log('Refresh Rides Response:', response.data);
+      setRides(response.data.rides);
+    } catch (error) {
+      const message =
+        error.response?.data?.message || 'Failed to refresh rides.';
+      console.error(
+        'Refresh Rides Error Details:',
+        error.message,
+        error.response?.data,
+      );
+      Alert.alert('Error', message);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [riderId]);
+
+  const cancelRide = async id => {
+    setLoading(true);
+    try {
+      const response = await axios.delete(`${BASE_URL}/riderpost/delete/${id}`);
       if (response.data.success) {
-        Alert.alert('Payment Successful', 'Your payment has been completed successfully.');
-        navigation.navigate('BookingSuccess');
+        Alert.alert('Success', response.data.message);
+        // After cancelling, remove the ride from the local state
+        setRides(prevRides => prevRides.filter(ride => ride._id !== id));
       } else {
-        Alert.alert('Payment Failed', 'Unable to complete the payment.');
+        Alert.alert('Error', response.data.message);
       }
     } catch (error) {
-      Alert.alert('Error', 'An error occurred while initiating payment.');
+      console.error('Error cancelling ride:', error);
+      Alert.alert('Error', 'Failed to cancel the booking. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+   
 
-  const handleCancelBooking = () => {
-    setRide(null);
-    Alert.alert('Cancelled', 'Your ride booking has been cancelled.');
-    navigation.goBack();
+  const renderRide = ({item}) => {
+    // Format date and time separately
+    const rideDateTime = item.rideDateTime ? new Date(item.rideDateTime) : null;
+    const formattedDate = rideDateTime
+      ? rideDateTime.toLocaleDateString()
+      : 'N/A';
+    const formattedTime = rideDateTime
+      ? rideDateTime.toLocaleTimeString()
+      : 'N/A';
+
+    return (
+      <View style={styles.card}>
+        {/* Pickup */}
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Pickup:</Text> {item.pickup || 'N/A'}
+        </Text>
+
+        {/* Dropoff */}
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Dropoff:</Text> {item.dropoff || 'N/A'}
+        </Text>
+
+        {/* Vehicle Type */}
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Vehicle:</Text> {item.vehicleType || 'N/A'}
+        </Text>
+
+        {/* Total Fare */}
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Total Fare:</Text>{' '}
+          {item.totalFare ? `Rs. ${item.totalFare}` : 'N/A'}
+        </Text>
+
+        {/* Ride Date */}
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Ride Date:</Text> {formattedDate}
+        </Text>
+
+        {/* Ride Time */}
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Ride Time:</Text> {formattedTime}
+        </Text>
+
+        {/* Booked Status */}
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Status:</Text>{' '}
+          <Text
+            style={[
+              styles.statusText,
+              item.booked ? styles.booked : styles.notBooked,
+            ]}>
+            {item.booked ? 'Booked' : 'Not Booked'}
+          </Text>
+        </Text>
+
+        {/* Driver Name (only if booked is true) */}
+        {item.booked && (
+          <Text style={styles.detail}>
+            <Text style={styles.label}>Driver Name:</Text>{' '}
+            {item.driverName || 'Not Assigned'}
+          </Text>
+        )}
+
+        {/* Cancel Booking Button */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => cancelRide(item._id)} // Correctly passing the ID from `item._id`
+          >
+            <Text style={styles.buttonText}>Cancel Booking</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Confirm Booking</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Your Rides</Text>
 
-      {!ride ? (
+      {loading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1e90ff" />
+          <Text style={styles.loadingText}>Loading rides...</Text>
+        </View>
+      ) : rides.length === 0 ? (
         <View style={styles.noRideContainer}>
-          <Text style={styles.noRideText}>No ride selected. Please select a ride to proceed with booking.</Text>
+          <Text style={styles.noRideText}>No rides found for this rider.</Text>
         </View>
       ) : (
-        <>
-          <View style={styles.card}>
-            <Text style={styles.detail}><Text style={styles.label}>Pickup:</Text> {ride.pickup}</Text>
-            <Text style={styles.detail}><Text style={styles.label}>Dropoff:</Text> {ride.dropoff}</Text>
-            <Text style={styles.detail}><Text style={styles.label}>Vehicle:</Text> {ride.vehicleType}</Text>
-            <Text style={styles.detail}><Text style={styles.label}>Distance:</Text> {ride.distance} km</Text>
-            <Text style={styles.detail}><Text style={styles.label}>Fare:</Text> Rs. {ride.totalFare}</Text>
-          </View>
-
-          {loading ? (
-            <ActivityIndicator size="large" color="#1e90ff" style={{ marginTop: 30 }} />
-          ) : (
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.confirmButton} onPress={() => handlePayment('jazzcash')}>
-                <Text style={styles.buttonText}>Pay with JazzCash</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.confirmButton} onPress={() => handlePayment('card')}>
-                <Text style={styles.buttonText}>Pay with Card</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={handleCancelBooking}>
-                <Text style={styles.buttonText}>Cancel Booking</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </>
+        <FlatList
+          data={rides}
+          renderItem={renderRide}
+          keyExtractor={item => item._id || Math.random().toString()}
+          contentContainerStyle={styles.flatListContent}
+          style={styles.flatList}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#1e90ff']}
+              tintColor={'#1e90ff'}
+            />
+          }
+          showsVerticalScrollIndicator={true}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={21}
+        />
       )}
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: 20,
     paddingTop: 50,
     backgroundColor: '#f1f4f6',
-    flexGrow: 1,
   },
   title: {
     fontSize: 26,
@@ -96,23 +251,44 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333',
+  },
   noRideContainer: {
     backgroundColor: '#fff',
     padding: 20,
     borderRadius: 12,
     elevation: 3,
     alignItems: 'center',
+    marginTop: 30,
   },
   noRideText: {
     fontSize: 18,
     color: '#333',
     textAlign: 'center',
   },
+  flatList: {
+    flex: 1,
+  },
+  flatListContent: {
+    paddingBottom: 20,
+    flexGrow: 1,
+  },
   card: {
     backgroundColor: '#fff',
     padding: 20,
     borderRadius: 12,
     elevation: 3,
+    marginBottom: 20,
+    marginHorizontal: 10,
   },
   detail: {
     fontSize: 18,
@@ -122,15 +298,18 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: 'bold',
   },
-  buttonContainer: {
-    marginTop: 30,
+  statusText: {
+    fontSize: 18,
+    fontWeight: '600',
   },
-  confirmButton: {
-    backgroundColor: '#28a745',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    alignItems: 'center',
+  booked: {
+    color: '#28a745', // Green for booked
+  },
+  notBooked: {
+    color: '#dc3545', // Red for not booked
+  },
+  buttonContainer: {
+    marginTop: 20,
   },
   cancelButton: {
     backgroundColor: '#dc3545',
