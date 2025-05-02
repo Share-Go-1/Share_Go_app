@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import {
   View,
   Text,
@@ -9,47 +9,81 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import {BASE_URL} from '../../../config/config';
+import { BASE_URL } from '../../../config/config';
 
 const DriverSearchRideScreen = () => {
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
   const [riderRides, setRiderRides] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [driverId, setDriverId] = useState(null);
+  const [driverName, setDriverName] = useState(null);
+
+  // Fetch driver ID from AsyncStorage and driver name from API
+  useEffect(() => {
+    const fetchDriverData = async () => {
+      try {
+        const storedDriverId = await AsyncStorage.getItem('driverId');
+        if (storedDriverId) {
+          setDriverId(storedDriverId);
+          const response = await axios.get(`${BASE_URL}/drivers/${storedDriverId}`);
+          const firstName = response.data.basicInfo?.firstName || 'Unknown';
+          setDriverName(firstName);
+        } else {
+          Alert.alert('Error', 'No driver ID found. Please log in.');
+        }
+      } catch (error) {
+        console.error('Error fetching driver data:', error);
+        Alert.alert('Error', 'Failed to fetch driver information.');
+      }
+    };
+    fetchDriverData();
+  }, []);
+
+  const fetchRiderName = async (riderId) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/riders/${riderId}`);
+      return response.data.firstName || 'Unknown';
+    } catch (error) {
+      console.error('Error fetching rider name:', error);
+      return 'Unknown';
+    }
+  };
 
   const handleSearch = async () => {
     const trimmedPickup = pickup.trim().toLowerCase();
     const trimmedDestination = destination.trim().toLowerCase();
-  
+
     if (!trimmedPickup && !trimmedDestination) {
       Alert.alert('Error', 'Please enter at least pickup or destination.');
       return;
     }
-  
+
     try {
       setLoading(true);
-  
-      const response = await axios.get(`${BASE_URL}/rides`);
+      const response = await axios.get(`${BASE_URL}/riderpost/`);
       const allRides = response.data.rides || [];
-  
+
       const filteredRides = allRides.filter(ride => {
         const ridePickup = ride.pickup?.toLowerCase() || '';
         const rideDropoff = ride.dropoff?.toLowerCase() || '';
-  
         const matchesPickup = trimmedPickup ? ridePickup.includes(trimmedPickup) : true;
         const matchesDestination = trimmedDestination ? rideDropoff.includes(trimmedDestination) : true;
-  
-        return matchesPickup && matchesDestination;
+        return matchesPickup && matchesDestination && !ride.booked;
       });
-  
-      if (filteredRides.length === 0) {
-        Alert.alert('No Rides', 'No rider rides found for your search.');
-      }
-  
-      setRiderRides(filteredRides);
+
+      // Fetch rider names for each ride
+      const ridesWithRiderNames = await Promise.all(
+        filteredRides.map(async (ride) => {
+          const riderName = await fetchRiderName(ride.riderId);
+          return { ...ride, riderFirstName: riderName };
+        })
+      );
+
+      setRiderRides(ridesWithRiderNames);
     } catch (error) {
       console.error('Error fetching rider rides:', error?.response || error);
       Alert.alert(
@@ -60,121 +94,210 @@ const DriverSearchRideScreen = () => {
       setLoading(false);
     }
   };
-  
 
-  const renderRideItem = ({item}) => (
+  const handleConfirmRide = (rideId) => {
+    if (!driverId || !driverName) {
+      Alert.alert('Error', 'Driver information not available. Please log in.');
+      return;
+    }
+
+    Alert.alert(
+      'Confirm Booking',
+      'Are you sure you want to book this ride?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            try {
+              await axios.patch(`${BASE_URL}/rides/${rideId}/book`, {
+                driverId,
+                driverName,
+              });
+              // Remove the booked ride from the list
+              setRiderRides(riderRides.filter(ride => ride._id !== rideId));
+              Alert.alert('Success', 'Ride booked successfully!');
+            } catch (error) {
+              console.error('Error booking ride:', error);
+              Alert.alert('Error', 'Failed to book the ride. Please try again.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const renderRideItem = ({ item }) => (
     <View style={styles.rideItem}>
-      <Text style={styles.rideText}>Pickup: {item.pickup}</Text>
-      <Text style={styles.rideText}>Dropoff: {item.dropoff}</Text>
-      <Text style={styles.rideText}>Vehicle: {item.vehicleType || 'Not specified'}</Text>
-      <Text style={styles.rideText}>Distance: {item.distance || 'Unknown'} km</Text>
-      <Text style={styles.rideText}>Fare: Rs. {item.totalFare || 'Not provided'}</Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Name:</Text> {item.riderFirstName || 'Unknown'}
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Pickup:</Text> {item.pickup}
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Dropoff:</Text> {item.dropoff}
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Vehicle:</Text> {item.vehicleType || 'Not specified'}
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Distance:</Text> {item.distance ? item.distance.toFixed(2) : 'Unknown'} km
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Fare:</Text> Rs. {item.totalFare || 'Not provided'}
+      </Text>
+      <TouchableOpacity
+        style={styles.confirmButton}
+        onPress={() => handleConfirmRide(item._id)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.confirmButtonText}>Confirm Ride</Text>
+      </TouchableOpacity>
     </View>
   );
 
+  const Header = memo(() => (
+    <View style={styles.headerContainer}>
+      <Text style={styles.title}>Search Rider's Posted Rides</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Pickup Location"
+        value={pickup}
+        onChangeText={setPickup}
+        placeholderTextColor="#888"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Destination Location"
+        value={destination}
+        onChangeText={setDestination}
+        placeholderTextColor="#888"
+      />
+      <TouchableOpacity style={styles.searchButton} onPress={handleSearch} activeOpacity={0.8}>
+        <Text style={styles.searchButtonText}>Search Rides</Text>
+      </TouchableOpacity>
+      {loading && <ActivityIndicator size="large" color="#1e90ff" style={styles.loader} />}
+      {!loading && riderRides.length === 0 && (
+        <Text style={styles.noRidesText}>No unbooked rider rides found.</Text>
+      )}
+    </View>
+  ));
+
   return (
-    <KeyboardAvoidingView style={{flex: 1}} behavior="padding">
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Search Rider's Posted Rides</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Pickup Location"
-          value={pickup}
-          onChangeText={setPickup}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Destination Location"
-          value={destination}
-          onChangeText={setDestination}
-        />
-
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-          <Text style={styles.searchButtonText}>Search Rides</Text>
-        </TouchableOpacity>
-
-        {loading && (
-          <ActivityIndicator
-            size="large"
-            color="#1e90ff"
-            style={{marginTop: 20}}
-          />
-        )}
-
-        {riderRides.length > 0 ? (
-          <FlatList
-            data={riderRides}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={renderRideItem}
-            contentContainerStyle={styles.listContainer}
-          />
-        ) : (
-          !loading && (
-            <Text style={styles.noRidesText}>
-              No rider's posted rides found.
-            </Text>
-          )
-        )}
-      </ScrollView>
+    <KeyboardAvoidingView style={styles.container} behavior="height">
+      <FlatList
+        data={riderRides}
+        keyExtractor={(item, index) => item._id || index.toString()}
+        renderItem={renderRideItem}
+        ListHeaderComponent={Header}
+        contentContainerStyle={styles.listContainer}
+        keyboardShouldPersistTaps="handled"
+      />
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f1f4f6',
+    flex: 1,
+    backgroundColor: '#e8eff8',
+  },
+  headerContainer: {
     padding: 20,
     paddingTop: 50,
-    flexGrow: 1,
-    justifyContent: 'flex-start',
+    backgroundColor: '#e8eff8',
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#1e90ff',
     textAlign: 'center',
     marginBottom: 20,
   },
   input: {
-    backgroundColor: '#f9f9f9',
-    padding: 14,
-    borderRadius: 10,
-    borderColor: '#ddd',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    borderColor: '#ccc',
     borderWidth: 1,
     marginBottom: 15,
+    fontSize: 16,
+    color: '#333',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   searchButton: {
     backgroundColor: '#1e90ff',
-    padding: 14,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   searchButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontWeight: '700',
+    fontSize: 18,
   },
   listContainer: {
-    marginTop: 20,
+    paddingBottom: 20,
   },
   rideItem: {
     backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
+    padding: 20,
+    borderRadius: 12,
     marginBottom: 15,
-    elevation: 2,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  rideText: {
+  detail: {
     fontSize: 16,
     color: '#333',
+    marginBottom: 8,
+  },
+  label: {
+    fontWeight: '600',
+    color: '#1e90ff',
   },
   noRidesText: {
     marginTop: 20,
     fontSize: 16,
-    color: '#555',
+    color: '#666',
     textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  loader: {
+    marginTop: 20,
+  },
+  confirmButton: {
+    backgroundColor: '#28a745',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
 
