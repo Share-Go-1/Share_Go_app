@@ -36,7 +36,7 @@ import DriverPostRideScreen from '../Drivers-Folder/Driver Navigation Screen/Dri
 import APP from '../Drivers-Folder/DriverMainHomeScreen';
 const Stack = createStackNavigator();
 
-export default function StackNavigator({initialRoute = 'Home'}) {
+export default function StackNavigator({initialRoute = 'RoleSelection'}) {
   return (
     <NavigationContainer>
       <Stack.Navigator

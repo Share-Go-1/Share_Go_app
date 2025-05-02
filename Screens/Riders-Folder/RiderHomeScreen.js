@@ -26,7 +26,7 @@ import {createStackNavigator} from '@react-navigation/stack';
 import SettingsScreen from '../Riders-Folder/Navigation Screens/SettingsScreen';
 const Stack = createStackNavigator();
 
-// Screens
+
 import HomeScreen from './Navigation Screens/HomeScreen';
 import ConfirmBookingScreen from './Navigation Screens/ConfirmBookingScreen';
 import PostRideScreen from './Navigation Screens/PostRideScreen';
@@ -40,7 +40,7 @@ const RiderHomeScreen = () => {
   const [riderId, setRiderId] = useState(null);
   const [riderName, setRiderName] = useState('');
 
-  // Fetching Rider Id
+  
   useEffect(() => {
     const fetchRiderId = async () => {
       try {
@@ -67,7 +67,7 @@ const RiderHomeScreen = () => {
 
   return riderName;
 };
-//Profile Picture
+
 const CustomDrawerContent = props => {
   const [profileImage, setProfileImage] = useState(null);
   const riderName = RiderHomeScreen();
@@ -84,7 +84,7 @@ const CustomDrawerContent = props => {
       }
     });
   };
-  // Drawer
+  
   return (
     <DrawerContentScrollView {...props}>
       <View style={styles.drawerHeader}>
@@ -126,7 +126,7 @@ const CustomDrawerContent = props => {
     </DrawerContentScrollView>
   );
 };
-//Bottom Navigation
+
 const BottomTabNavigator = () => (
   <Tab.Navigator
     screenOptions={{
@@ -152,7 +152,6 @@ const BottomTabNavigator = () => (
         ),
       }}
     />
-    
     <Tab.Screen
       name="PostRide"
       component={PostRideScreen}
