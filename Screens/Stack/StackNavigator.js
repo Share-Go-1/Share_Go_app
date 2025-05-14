@@ -18,6 +18,7 @@ import DriverSelectionScreen from '../Drivers-Folder/Drivers-Selection/DriverSel
 import BikeScreen from '../Drivers-Folder/Vechiles-Folder/Bike';
 import CarScreen from '../Drivers-Folder/Vechiles-Folder/Car';
 import Driver_HomeScreen from '../Drivers-Folder/Driver_HomeScreen';
+import DriverHomeScreen from '../Drivers-Folder/Driver Navigation Screen/DriverHomeScreen';
 
 // for the documentation screens
 import BasicInfoScreen from '../Documentation-Folder/BasicInfoScreen';
@@ -54,6 +55,7 @@ export default function StackNavigator({initialRoute = 'RoleSelection'}) {
         <Stack.Screen name="Driver" component={DriverSelectionScreen} />
         <Stack.Screen name="Rider" component={RiderScreen} />
         <Stack.Screen name="Driver_HomeScreen" component={Driver_HomeScreen} />
+        <Stack.Screen name="DriverHomeScreen" component={DriverHomeScreen} />
         <Stack.Screen name="Rider_HomeScreen" component={RiderHomeScreen} />
         <Stack.Screen name="Bike_Screen" component={BikeScreen} />
         <Stack.Screen name="Car_Screen" component={CarScreen} />

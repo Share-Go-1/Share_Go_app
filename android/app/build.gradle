@@ -105,6 +105,12 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+        sourceSets {
+        main {
+            // make sure assets folder is included
+            assets.srcDirs = ['src/main/assets']
+        }
+    }
 }
 
 dependencies {

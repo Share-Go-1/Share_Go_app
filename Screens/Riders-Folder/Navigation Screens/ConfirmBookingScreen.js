@@ -55,7 +55,7 @@ const ConfirmBookingScreen = ({route, navigation}) => {
       const response = await axios.get(`${BASE_URL}/riderpost/${riderId}`, {
         params: {booked: false},
       });
-      console.log('Fetch Rides Response:', response.data);
+      
       setRides(response.data.rides); // Assuming response.data.rides
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to fetch rides.';
