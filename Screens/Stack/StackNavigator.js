@@ -5,6 +5,7 @@ import PrivacyPolicyScreen from '../Riders-Folder/Navigation Screens/PrivacyPoli
 
 import DriverPrivacyPolicy from '../Drivers-Folder/Driver Navigation Screen/DriverPrivacyPolicyScreen';
 import DriverMainHomeScreen from '../Drivers-Folder/DriverMainHomeScreen';
+import HomeScreen from '../Riders-Folder/Navigation Screens/HomeScreen';
 
 // for the role selection screen
 import RoleSelectionScreen from '../Role-Selection/RoleSelectionScreen';
@@ -56,6 +57,7 @@ export default function StackNavigator({initialRoute = 'RoleSelection'}) {
         <Stack.Screen name="Rider" component={RiderScreen} />
         <Stack.Screen name="Driver_HomeScreen" component={Driver_HomeScreen} />
         <Stack.Screen name="DriverHomeScreen" component={DriverHomeScreen} />
+        <Stack.Screen name="HomeScreen" component={HomeScreen} />
         <Stack.Screen name="Rider_HomeScreen" component={RiderHomeScreen} />
         <Stack.Screen name="Bike_Screen" component={BikeScreen} />
         <Stack.Screen name="Car_Screen" component={CarScreen} />

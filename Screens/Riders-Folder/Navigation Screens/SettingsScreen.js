@@ -54,7 +54,7 @@ const SettingsScreen = ({navigation}) => {
             setLoading(true);
             try {
               const response = await fetch(
-                `http://10.135.88.145
+                `http://10.135.40.171
                 :4000/api/riders/${riderId}`,
                 {
                   method: 'DELETE',
