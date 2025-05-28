@@ -54,48 +54,48 @@ export default function PostRideScreen() {
     fetchRiderId();
   }, []);
 
-useEffect(() => {
-  const fetchFuelPrice = async () => {
-    try {
-      const response = await fetch(`${BASE_URL}/Fuel-price`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+  useEffect(() => {
+    const fetchFuelPrice = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/Fuel-price`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        const petrolString = data?.prices?.petrol;
+        if (response.ok) {
+          const data = await response.json();
+          const petrolString = data?.prices?.petrol;
 
-        if (petrolString) {
-          // Remove "Rs." and "/Ltr", keep numeric part only
-          const numericPrice = parseFloat(
-            petrolString.replace(/Rs\.|\/Ltr/g, ''), // Remove "Rs." and "/Ltr" specifically
-          );
-          if (!isNaN(numericPrice)) {
-            setFuelPrice(numericPrice);
-            console.log('Numeric Petrol Price:', numericPrice);
+          if (petrolString) {
+            // Remove "Rs." and "/Ltr", keep numeric part only
+            const numericPrice = parseFloat(
+              petrolString.replace(/Rs\.|\/Ltr/g, ''), // Remove "Rs." and "/Ltr" specifically
+            );
+            if (!isNaN(numericPrice)) {
+              setFuelPrice(numericPrice);
+              console.log('Numeric Petrol Price:', numericPrice);
+            } else {
+              console.error('Invalid petrol price format');
+              setFuelPrice(null);
+            }
           } else {
-            console.error('Invalid petrol price format');
+            console.error('Petrol price not found in response');
             setFuelPrice(null);
           }
         } else {
-          console.error('Petrol price not found in response');
+          console.error('Failed to fetch fuel price');
           setFuelPrice(null);
         }
-      } else {
-        console.error('Failed to fetch fuel price');
+      } catch (error) {
+        console.error('Error fetching fuel price:', error);
         setFuelPrice(null);
       }
-    } catch (error) {
-      console.error('Error fetching fuel price:', error);
-      setFuelPrice(null);
-    }
-  };
+    };
 
-  fetchFuelPrice();
-}, []);
+    fetchFuelPrice();
+  }, []);
 
   const toggleVehicleType = type => {
     setVehicleType(type);
@@ -108,7 +108,6 @@ useEffect(() => {
   const hideDatePicker = () => {
     setDatePickerVisibility(false);
   };
-
 
   const getCoordinates = async place => {
     try {
@@ -166,7 +165,7 @@ useEffect(() => {
     return {totalFare, sharegoEarning: sharegoEarning.toFixed(2)};
   };
 
-const handleConfirm = (selectedDate) => {
+  const handleConfirm = selectedDate => {
     const currentDate = new Date();
     if (selectedDate.getTime() < currentDate.getTime()) {
       Alert.alert(
@@ -181,7 +180,7 @@ const handleConfirm = (selectedDate) => {
             },
           },
         ],
-        { cancelable: false }
+        {cancelable: false},
       );
       return;
     }

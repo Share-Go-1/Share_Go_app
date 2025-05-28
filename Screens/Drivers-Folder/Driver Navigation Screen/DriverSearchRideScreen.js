@@ -21,8 +21,12 @@ const DriverSearchRideScreen = () => {
   const [loading, setLoading] = useState(false);
   const [driverId, setDriverId] = useState(null);
   const [driverName, setDriverName] = useState(null);
+  const [driverNumber, setDriverNumber] = useState(null);
+  const [driverVechileNumber, setDriverVechileNumber] = useState(null);
+  const [driverVechileColor, setDriverVechileColor] = useState(null);
+  const [driverVechileModel, setDriverVechileModel] = useState(null);
 
-  // Fetch driver ID from AsyncStorage and driver name from API
+  // Fetch driver data from AsyncStorage and API
   useEffect(() => {
     const fetchDriverData = async () => {
       try {
@@ -30,8 +34,14 @@ const DriverSearchRideScreen = () => {
         if (storedDriverId) {
           setDriverId(storedDriverId);
           const response = await axios.get(`${BASE_URL}/drivers/${storedDriverId}`);
-          const firstName = response.data.basicInfo?.firstName || 'Unknown';
-          setDriverName(firstName);
+          const driverData = response.data;
+          setDriverName(driverData.basicInfo?.firstName || 'Unknown');
+          setDriverNumber(driverData.basicInfo?.phoneNumber || null); // Assuming phoneNumber is in basicInfo
+          // Determine vehicle type and extract details from bikeInfo or carInfo
+          const vehicleInfo = driverData.vehicle?.bikeInfo || driverData.vehicle?.carInfo || {};
+          setDriverVechileNumber(vehicleInfo.vehicleNumber || null);
+          setDriverVechileColor(vehicleInfo.vehicleColor || null);
+          setDriverVechileModel(vehicleInfo.vehicleModel || null);
         } else {
           Alert.alert('Error', 'No driver ID found. Please log in.');
         }
@@ -96,8 +106,8 @@ const DriverSearchRideScreen = () => {
   };
 
   const handleConfirmRide = (rideId) => {
-    if (!driverId || !driverName) {
-      Alert.alert('Error', 'Driver information not available. Please log in.');
+    if (!driverId || !driverName || !driverNumber || !driverVechileNumber || !driverVechileColor || !driverVechileModel) {
+      Alert.alert('Error', 'Driver information not complete. Please ensure all details are available.');
       return;
     }
 
@@ -113,6 +123,10 @@ const DriverSearchRideScreen = () => {
               await axios.patch(`${BASE_URL}/rides/${rideId}/book`, {
                 driverId,
                 driverName,
+                driverNumber,
+                driverVechileNumber,
+                driverVechileColor,
+                driverVechileModel,
               });
               // Remove the booked ride from the list
               setRiderRides(riderRides.filter(ride => ride._id !== rideId));
