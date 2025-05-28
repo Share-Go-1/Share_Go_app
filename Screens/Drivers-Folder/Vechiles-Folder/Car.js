@@ -70,6 +70,7 @@ const CarScreen = ({navigation}) => {
       vehicle: {
         type: 'Car',
         bikeInfo: {
+          color: vehicleInfo?.color,
           vehicleNumber: vehicleInfo?.vehicleNumber,
           company: vehicleInfo?.company,
           model: vehicleInfo?.model,

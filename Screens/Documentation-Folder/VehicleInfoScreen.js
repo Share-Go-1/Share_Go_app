@@ -18,7 +18,7 @@ import { PermissionsAndroid } from 'react-native';
 const VehicleInfoScreen = ({ route, navigation }) => {
   const { setData } = route.params;
   const [vehicleNumber, setVehicleNumber] = useState('');
-  const [company, setCompany] = useState(null);
+  const [color, setColor] = useState('');  const [company, setCompany] = useState(null);
   const [model, setModel] = useState(null);
   const [engineNumber, setEngineNumber] = useState('');
   const [images, setImages] = useState({
@@ -178,6 +178,7 @@ const VehicleInfoScreen = ({ route, navigation }) => {
       if (frontImageUrl && rightImageUrl && leftImageUrl && backImageUrl) {
         const vehicleData = {
           vehicleNumber,
+          color,
           company,
           model,
           engineNumber,
@@ -217,6 +218,14 @@ const VehicleInfoScreen = ({ route, navigation }) => {
           placeholder="e.g: LEQ 7026"
           value={vehicleNumber}
           onChangeText={setVehicleNumber}
+        />
+        <Text style={styles.label}>Color</Text>
+         <TextInput
+          style={styles.input}
+          placeholder="e.g: Blue"
+          value={color}
+          onChangeText={setColor}
+          maxLength={20}
         />
 
         <Text style={styles.label}>Company Name</Text>
