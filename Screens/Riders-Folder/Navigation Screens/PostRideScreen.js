@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -13,10 +13,11 @@ import {
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { BASE_URL } from '../../../config/config';
+import {BASE_URL} from '../../../config/config';
 
 const openCageKey = 'e670c19735ce491caae138c921e2e51e';
-const openRouteServiceKey = '5b3ce3597851110001cf6248e9cc9c298c3e43d7a9cb400fbd66d825';
+const openRouteServiceKey =
+  '5b3ce3597851110001cf6248e9cc9c298c3e43d7a9cb400fbd66d825';
 
 export default function PostRideScreen() {
   const [pickup, setPickup] = useState('');
@@ -31,13 +32,14 @@ export default function PostRideScreen() {
   const [postedRides, setPostedRides] = useState([]);
   const [selectedDateTime, setSelectedDateTime] = useState(null);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [fuelPrice, setFuelPrice] = useState(); // State for FUEL_PRICE
 
-  const FUEL_PRICE = 255;
   const Bike_BASE_FARE = 50;
   const Car_BASE_FARE = 100;
-  const VEHICLE_CONSUMPTION = { bike: 40, car: 13 };
-  const SHAREGO_PERCENTAGE = { bike: 0.10, car: 0.10 };
+  const VEHICLE_CONSUMPTION = {bike: 40, car: 13};
+  const SHAREGO_PERCENTAGE = {bike: 0.1, car: 0.1};
 
+  // Fetch rider ID
   useEffect(() => {
     const fetchRiderId = async () => {
       try {
@@ -52,7 +54,50 @@ export default function PostRideScreen() {
     fetchRiderId();
   }, []);
 
-  const toggleVehicleType = (type) => {
+useEffect(() => {
+  const fetchFuelPrice = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/Fuel-price`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const petrolString = data?.prices?.petrol;
+
+        if (petrolString) {
+          // Remove "Rs." and "/Ltr", keep numeric part only
+          const numericPrice = parseFloat(
+            petrolString.replace(/Rs\.|\/Ltr/g, ''), // Remove "Rs." and "/Ltr" specifically
+          );
+          if (!isNaN(numericPrice)) {
+            setFuelPrice(numericPrice);
+            console.log('Numeric Petrol Price:', numericPrice);
+          } else {
+            console.error('Invalid petrol price format');
+            setFuelPrice(null);
+          }
+        } else {
+          console.error('Petrol price not found in response');
+          setFuelPrice(null);
+        }
+      } else {
+        console.error('Failed to fetch fuel price');
+        setFuelPrice(null);
+      }
+    } catch (error) {
+      console.error('Error fetching fuel price:', error);
+      setFuelPrice(null);
+    }
+  };
+
+  fetchFuelPrice();
+}, []);
+
+  const toggleVehicleType = type => {
     setVehicleType(type);
   };
 
@@ -64,25 +109,24 @@ export default function PostRideScreen() {
     setDatePickerVisibility(false);
   };
 
-  const handleConfirm = (date) => {
-    setSelectedDateTime(date);
-    hideDatePicker();
-  };
 
-  const getCoordinates = async (place) => {
+  const getCoordinates = async place => {
     try {
-      const response = await axios.get('https://api.opencagedata.com/geocode/v1/json', {
-        params: {
-          q: `${place}, Lahore, Pakistan`,
-          key: openCageKey,
-          countrycode: 'pk',
-          limit: 1,
+      const response = await axios.get(
+        'https://api.opencagedata.com/geocode/v1/json',
+        {
+          params: {
+            q: `${place}, Lahore, Pakistan`,
+            key: openCageKey,
+            countrycode: 'pk',
+            limit: 1,
+          },
         },
-      });
+      );
 
       if (response.data.results.length > 0) {
-        const { lat, lng } = response.data.results[0].geometry;
-        return { latitude: lat, longitude: lng };
+        const {lat, lng} = response.data.results[0].geometry;
+        return {latitude: lat, longitude: lng};
       } else {
         throw new Error(`No results for ${place}`);
       }
@@ -107,19 +151,55 @@ export default function PostRideScreen() {
     return meters / 1000;
   };
 
-  const calculateFare = (km) => {
+  const calculateFare = km => {
+    if (!fuelPrice) {
+      Alert.alert('Error', 'Fuel price not available. Please try again later.');
+      return {totalFare: null, sharegoEarning: null};
+    }
+
     const BASE_FARE = vehicleType === 'bike' ? Bike_BASE_FARE : Car_BASE_FARE;
     const fuelNeeded = km / VEHICLE_CONSUMPTION[vehicleType];
-    const fuelCost = fuelNeeded * FUEL_PRICE;
+    const fuelCost = fuelNeeded * fuelPrice;
     const subtotal = BASE_FARE + fuelCost;
     const sharegoEarning = subtotal * SHAREGO_PERCENTAGE[vehicleType];
     const totalFare = Math.round(subtotal + sharegoEarning).toFixed(2);
-    return { totalFare, sharegoEarning: sharegoEarning.toFixed(2) };
+    return {totalFare, sharegoEarning: sharegoEarning.toFixed(2)};
+  };
+
+const handleConfirm = (selectedDate) => {
+    const currentDate = new Date();
+    if (selectedDate.getTime() < currentDate.getTime()) {
+      Alert.alert(
+        'Invalid Time',
+        'Please select a future date and time.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Keep the picker open to allow re-selection
+              setDatePickerVisible(true);
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+      return;
+    }
+    setSelectedDateTime(selectedDate);
+    hideDatePicker();
   };
 
   const handleCalculate = async () => {
+    const currentDate = new Date();
     if (!pickup || !destination || !selectedDateTime) {
       Alert.alert('Please enter Pickup, Destination, and select Date & Time');
+      return;
+    }
+    if (selectedDateTime.getTime() < currentDate.getTime()) {
+      Alert.alert(
+        'Invalid Time',
+        'Selected date and time cannot be in the past.',
+      );
       return;
     }
 
@@ -135,10 +215,18 @@ export default function PostRideScreen() {
       setPickupCoords(pickupLocation);
       setDestCoords(destLocation);
 
-      const realDistance = await getDrivingDistanceFromORS(pickupLocation, destLocation);
+      const realDistance = await getDrivingDistanceFromORS(
+        pickupLocation,
+        destLocation,
+      );
       setDistance(realDistance.toFixed(2));
 
-      const { totalFare, sharegoEarning } = calculateFare(realDistance);
+      const {totalFare, sharegoEarning} = calculateFare(realDistance);
+      if (!totalFare) {
+        setLoading(false);
+        Alert.alert('Error', 'Failed to calculate fare.');
+        return;
+      }
       setFare(totalFare);
 
       await uploadRideDetails(
@@ -149,10 +237,10 @@ export default function PostRideScreen() {
         realDistance,
         totalFare,
         sharegoEarning,
-        selectedDateTime
+        selectedDateTime,
       );
 
-      setPostedRides((prev) => [
+      setPostedRides(prev => [
         ...prev,
         {
           pickup,
@@ -161,15 +249,18 @@ export default function PostRideScreen() {
           totalFare,
           sharegoEarning,
           dateTime: selectedDateTime.toISOString(),
-          booked: false, // Default unbooked
-          driverId: null, // No driver initially
+          booked: false,
+          driverId: null,
         },
       ]);
 
       setLoading(false);
     } catch (error) {
       setLoading(false);
-      Alert.alert('Error', 'Error calculating distance or uploading. Please try again.');
+      Alert.alert(
+        'Error',
+        'Error calculating distance or uploading. Please try again.',
+      );
       console.error(error);
     }
   };
@@ -182,7 +273,7 @@ export default function PostRideScreen() {
     distance,
     fare,
     sharegoEarning,
-    dateTime
+    dateTime,
   ) => {
     try {
       const payload = {
@@ -233,7 +324,10 @@ export default function PostRideScreen() {
           Alert.alert('Success', 'Ride details uploaded successfully!');
         } else {
           console.error('Upload failed:', result);
-          Alert.alert('Failed', result.message || 'Failed to upload ride details.');
+          Alert.alert(
+            'Failed',
+            result.message || 'Failed to upload ride details.',
+          );
         }
       } catch (error) {
         console.error('JSON parse error:', error);
@@ -246,10 +340,10 @@ export default function PostRideScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+    <KeyboardAvoidingView style={{flex: 1}} behavior="padding">
       <ScrollView contentContainerStyle={styles.container}>
         {riderId ? (
-          <Text style={{ textAlign: 'center', marginBottom: 10 }}>
+          <Text style={{textAlign: 'center', marginBottom: 10}}>
             👤 Rider ID: {riderId}
           </Text>
         ) : null}
@@ -258,15 +352,19 @@ export default function PostRideScreen() {
 
         <View style={styles.card}>
           <View style={styles.toggleContainer}>
-            {['car', 'bike'].map((type) => (
+            {['car', 'bike'].map(type => (
               <TouchableOpacity
                 key={type}
-                style={[styles.toggleButton, vehicleType === type && styles.selectedButton]}
-                onPress={() => toggleVehicleType(type)}
-              >
+                style={[
+                  styles.toggleButton,
+                  vehicleType === type && styles.selectedButton,
+                ]}
+                onPress={() => toggleVehicleType(type)}>
                 <Text
-                  style={[styles.toggleText, vehicleType === type && styles.selectedText]}
-                >
+                  style={[
+                    styles.toggleText,
+                    vehicleType === type && styles.selectedText,
+                  ]}>
                   {type.toUpperCase()}
                 </Text>
               </TouchableOpacity>
@@ -274,7 +372,10 @@ export default function PostRideScreen() {
           </View>
 
           <Text style={styles.vehicleLabel}>
-            Selected: <Text style={{ fontWeight: 'bold' }}>{vehicleType.toUpperCase()}</Text>
+            Selected:{' '}
+            <Text style={{fontWeight: 'bold'}}>
+              {vehicleType.toUpperCase()}
+            </Text>
           </Text>
 
           <TextInput
@@ -304,6 +405,7 @@ export default function PostRideScreen() {
             onConfirm={handleConfirm}
             onCancel={hideDatePicker}
             minimumDate={new Date()}
+            minuteInterval={5} // Optional: 5-minute increments
           />
 
           <TouchableOpacity style={styles.calcButton} onPress={handleCalculate}>
@@ -311,7 +413,11 @@ export default function PostRideScreen() {
           </TouchableOpacity>
 
           {loading && (
-            <ActivityIndicator size="large" color="#1e90ff" style={{ marginTop: 20 }} />
+            <ActivityIndicator
+              size="large"
+              color="#1e90ff"
+              style={{marginTop: 20}}
+            />
           )}
 
           {pickupCoords && (
@@ -326,9 +432,13 @@ export default function PostRideScreen() {
             </Text>
           )}
 
-          {distance && <Text style={styles.result}>Distance: {distance} km</Text>}
+          {distance && (
+            <Text style={styles.result}>Distance: {distance} km</Text>
+          )}
 
-          {fare && <Text style={styles.result}>Estimated Fare: Rs. {fare}</Text>}
+          {fare && (
+            <Text style={styles.result}>Estimated Fare: Rs. {fare}</Text>
+          )}
 
           {selectedDateTime && (
             <Text style={styles.result}>

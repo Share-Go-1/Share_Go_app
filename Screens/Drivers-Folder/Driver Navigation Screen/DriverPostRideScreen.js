@@ -31,8 +31,9 @@ export default function DriverPostRideScreen() {
   const [postedRides, setPostedRides] = useState([]);
   const [selectedDateTime, setSelectedDateTime] = useState(null);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [fuelPrice, setFuelPrice] = useState(); // State for FUEL_PRICE
 
-  const FUEL_PRICE = 255;
+
   const Bike_BASE_FARE = 50;
   const Car_BASE_FARE = 100;
   const VEHICLE_CONSUMPTION = { bike: 40, car: 13 };
@@ -49,6 +50,49 @@ export default function DriverPostRideScreen() {
     };
     fetchDriverId();
   }, []);
+
+  useEffect(() => {
+      const fetchFuelPrice = async () => {
+        try {
+          const response = await fetch(`${BASE_URL}/Fuel-price`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+  
+          if (response.ok) {
+            const data = await response.json();
+            const petrolString = data?.prices?.petrol;
+  
+            if (petrolString) {
+              // Remove "Rs." and "/Ltr", keep numeric part only
+              const numericPrice = parseFloat(
+                petrolString.replace(/Rs\.|\/Ltr/g, ''), // Remove "Rs." and "/Ltr" specifically
+              );
+              if (!isNaN(numericPrice)) {
+                setFuelPrice(numericPrice);
+                console.log('Numeric Petrol Price:', numericPrice);
+              } else {
+                console.error('Invalid petrol price format');
+                setFuelPrice(null);
+              }
+            } else {
+              console.error('Petrol price not found in response');
+              setFuelPrice(null);
+            }
+          } else {
+            console.error('Failed to fetch fuel price');
+            setFuelPrice(null);
+          }
+        } catch (error) {
+          console.error('Error fetching fuel price:', error);
+          setFuelPrice(null);
+        }
+      };
+  
+      fetchFuelPrice();
+    }, []);
 
   const toggleVehicleType = (type) => setVehicleType(type);
 
@@ -88,10 +132,10 @@ export default function DriverPostRideScreen() {
   const calculateFare = (km) => {
     const base = vehicleType === 'bike' ? Bike_BASE_FARE : Car_BASE_FARE;
     const fuelNeeded = km / VEHICLE_CONSUMPTION[vehicleType];
-    const fuelCost = fuelNeeded * FUEL_PRICE;
+    const fuelCost = fuelNeeded * fuelPrice;
     const subtotal = base + fuelCost;
     const commission = subtotal * SHAREGO_PERCENTAGE[vehicleType];
-    const total = (subtotal + commission).toFixed(2);
+    const total = Math.round(subtotal + commission).toFixed(2);
     return { totalFare: total, commission: commission.toFixed(2) };
   };
 
