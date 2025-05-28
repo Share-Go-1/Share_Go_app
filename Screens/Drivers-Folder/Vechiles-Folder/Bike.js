@@ -10,6 +10,7 @@ import {
 import Icon from 'react-native-elements/dist/icons/Icon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASE_URL } from '../../../config/config';
+import { color } from 'react-native-elements/dist/helpers';
 
 const BikeScreen = ({ navigation }) => {
   const [basicInfo, setBasicInfo] = useState(null);
@@ -67,6 +68,7 @@ const BikeScreen = ({ navigation }) => {
       vehicle: {
         type: 'Bike',
         bikeInfo: {
+          color: vehicleInfo?.color,
           vehicleNumber: vehicleInfo?.vehicleNumber,
           company: vehicleInfo?.company,
           model: vehicleInfo?.model,
