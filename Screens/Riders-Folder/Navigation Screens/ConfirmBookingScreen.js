@@ -180,10 +180,28 @@ const ConfirmBookingScreen = ({route, navigation}) => {
 
         {/* Driver Name (only if booked is true) */}
         {item.booked && (
-          <Text style={styles.detail}>
-            <Text style={styles.label}>Driver Name:</Text>{' '}
-            {item.driverName || 'Not Assigned'}
-          </Text>
+          <View>
+            <Text style={styles.detail}>
+              <Text style={styles.label}>Driver Name:</Text>{' '}
+              {item.driverName || 'Not Assigned'}
+            </Text>
+            <Text style={styles.detail}>
+              <Text style={styles.label}>Driver Number:</Text>{' '}
+              {item.driverNumber || 'Not Assigned'}
+            </Text>
+            <Text style={styles.detail}>
+              <Text style={styles.label}>vehicle Color:</Text>{' '}
+              {item.driverVechileColor || 'Not Assigned'}
+            </Text>
+            <Text style={styles.detail}>
+              <Text style={styles.label}>Vehicle Model:</Text>{' '}
+              {item.driverVechileModel || 'Not Assigned'}
+            </Text>
+            <Text style={styles.detail}>
+              <Text style={styles.label}>Vehicle Number:</Text>{' '}
+              {item.driverVechileNumber || 'Not Assigned'}
+            </Text>
+          </View>
         )}
 
         {/* Cancel Booking Button */}

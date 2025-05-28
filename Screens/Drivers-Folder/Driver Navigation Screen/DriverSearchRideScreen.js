@@ -40,8 +40,8 @@ const DriverSearchRideScreen = () => {
           // Determine vehicle type and extract details from bikeInfo or carInfo
           const vehicleInfo = driverData.vehicle?.bikeInfo || driverData.vehicle?.carInfo || {};
           setDriverVechileNumber(vehicleInfo.vehicleNumber || null);
-          setDriverVechileColor(vehicleInfo.vehicleColor || null);
-          setDriverVechileModel(vehicleInfo.vehicleModel || null);
+          setDriverVechileColor(vehicleInfo.color || null);
+          setDriverVechileModel(vehicleInfo.model || null);
         } else {
           Alert.alert('Error', 'No driver ID found. Please log in.');
         }
@@ -105,42 +105,51 @@ const DriverSearchRideScreen = () => {
     }
   };
 
-  const handleConfirmRide = (rideId) => {
-    if (!driverId || !driverName || !driverNumber || !driverVechileNumber || !driverVechileColor || !driverVechileModel) {
-      Alert.alert('Error', 'Driver information not complete. Please ensure all details are available.');
-      return;
-    }
+const handleConfirmRide = (rideId) => {
+  const missingFields = [];
+  if (!driverId) missingFields.push('driverId');
+  if (!driverName) missingFields.push('driverName');
+  if (!driverNumber) missingFields.push('driverNumber');
+  if (!driverVechileNumber) missingFields.push('driverVechileNumber');
+  if (!driverVechileColor) missingFields.push('driverVechileColor');
+  if (!driverVechileModel) missingFields.push('driverVechileModel');
 
-    Alert.alert(
-      'Confirm Booking',
-      'Are you sure you want to book this ride?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: async () => {
-            try {
-              await axios.patch(`${BASE_URL}/rides/${rideId}/book`, {
-                driverId,
-                driverName,
-                driverNumber,
-                driverVechileNumber,
-                driverVechileColor,
-                driverVechileModel,
-              });
-              // Remove the booked ride from the list
-              setRiderRides(riderRides.filter(ride => ride._id !== rideId));
-              Alert.alert('Success', 'Ride booked successfully!');
-            } catch (error) {
-              console.error('Error booking ride:', error);
-              Alert.alert('Error', 'Failed to book the ride. Please try again.');
-            }
-          },
+  if (missingFields.length > 0) {
+    console.log('Missing driver fields:', missingFields);
+    Alert.alert('Error', `Missing driver information: ${missingFields.join(', ')}. Please ensure all details are available.`);
+    return;
+  }
+
+  // Rest of the function remains the same
+  Alert.alert(
+    'Confirm Booking',
+    'Are you sure you want to book this ride?',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Confirm',
+        onPress: async () => {
+          try {
+            await axios.patch(`${BASE_URL}/rides/${rideId}/book`, {
+              driverId,
+              driverName,
+              driverNumber,
+              driverVechileNumber,
+              driverVechileColor,
+              driverVechileModel,
+            });
+            setRiderRides(riderRides.filter(ride => ride._id !== rideId));
+            Alert.alert('Success', 'Ride booked successfully!');
+          } catch (error) {
+            console.error('Error booking ride:', error);
+            Alert.alert('Error', 'Failed to book the ride. Please try again.');
+          }
         },
-      ],
-      { cancelable: true }
-    );
-  };
+      },
+    ],
+    { cancelable: true }
+  );
+};
 
   const renderRideItem = ({ item }) => (
     <View style={styles.rideItem}>
