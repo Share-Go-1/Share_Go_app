@@ -50,28 +50,33 @@ const DriverHomeScreen = () => {
     let dropoffCoords = null;
 
     function drawRouteWithAPI() {
-      if (!pickupCoords || !dropoffCoords) {
-        alert("Pickup or Dropoff location missing.");
-        return;
-      }
+  if (!pickupCoords || !dropoffCoords) {
+    alert("Pickup or Dropoff location missing.");
+    return;
+  }
 
-      const apiKey = "5b3ce3597851110001cf6248648afa3da02b4f99982cd4f009d549ce"; // Replace this
-      const url = \`https://api.openrouteservice.org/v2/directions/driving-car?api_key=\${apiKey}&start=\${pickupCoords[1]},\${pickupCoords[0]}&end=\${dropoffCoords[1]},\${dropoffCoords[0]}\`;
+  const apiKey = "5b3ce3597851110001cf6248648afa3da02b4f99982cd4f009d549ce"; // Replace with your key
+  const url = \https://api.openrouteservice.org/v2/directions/driving-car?api_key=\${apiKey}&start=\${pickupCoords[1]},\${pickupCoords[0]}&end=\${dropoffCoords[1]},\${dropoffCoords[0]}\;
 
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          const coords = data.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
-          if (routeLine) map.removeLayer(routeLine);
-          routeLine = L.polyline(coords, {color: 'red', weight: 4}).addTo(map);
-          map.fitBounds(routeLine.getBounds().pad(0.3));
-          window.ReactNativeWebView.postMessage("🚗 Route drawn");
-        })
-        .catch(err => {
-          console.error("Error fetching route:", err);
-          alert("Failed to draw route.");
-        });
-    }
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      const coords = data.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+      if (routeLine) map.removeLayer(routeLine);
+      routeLine = L.polyline(coords, {color: 'red', weight: 4}).addTo(map);
+      map.fitBounds(routeLine.getBounds().pad(0.3));
+      window.ReactNativeWebView.postMessage("🚗 Route drawn");
+    })
+    .catch(err => {
+      console.error("Error fetching route:", err);
+      alert("Failed to draw route.");
+
+      // Fallback: Fit map around both markers
+      const bounds = L.latLngBounds([pickupCoords, dropoffCoords]);
+      map.fitBounds(bounds.pad(0.3));
+    });
+}
+
 
     document.getElementById("startBtn").addEventListener("click", drawRouteWithAPI);
 
