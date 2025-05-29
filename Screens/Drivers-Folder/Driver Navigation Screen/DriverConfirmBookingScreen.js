@@ -13,7 +13,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {BASE_URL} from '../../../config/config';
 
-const DriverConfirmBookingScreen = ({route}) => {
+const DriverConfirmBookingScreen = ({navigation, route}) => {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [driverId, setDriverId] = useState(null);
@@ -57,7 +57,8 @@ const DriverConfirmBookingScreen = ({route}) => {
       setLoading(true);
       setError(null);
       const response = await axios.get(`${BASE_URL}/driverpost/${driverId}`, {
-        params: {booked: false},
+       // params: {booked: false},
+        params: { booked: true },
       });
       console.log('Fetch Rides Response:', response.data);
       setRides(response.data.posts || []); // Changed from response.data.rides to response.data.posts
@@ -101,8 +102,7 @@ const DriverConfirmBookingScreen = ({route}) => {
   const cancelRide = async id => {
     try {
       setLoading(true);
-      const response = await axios.delete(`${BASE_URL}/delete/${id}`,
-      );
+      const response = await axios.delete(`${BASE_URL}/delete/${id}`);
       if (response.data.success) {
         Alert.alert('Success', response.data.message);
         setRides(prevRides => prevRides.filter(ride => ride._id !== id));
@@ -133,7 +133,6 @@ const DriverConfirmBookingScreen = ({route}) => {
           minute: '2-digit',
         })
       : 'N/A';
-
     return (
       <View style={styles.card}>
         <Text style={styles.detail}>
@@ -166,7 +165,7 @@ const DriverConfirmBookingScreen = ({route}) => {
           <Text
             style={[
               styles.statusText,
-              item.booked ? styles.booked : styles.notBooked,
+              item.booked ? styles : styles.notBooked,
             ]}>
             {item.booked ? 'Booked' : 'Not Booked'}
           </Text>
@@ -195,6 +194,25 @@ const DriverConfirmBookingScreen = ({route}) => {
             <Text style={styles.buttonText}>Cancel Booking</Text>
           </TouchableOpacity>
         </View>
+        {item.booked && (
+          <TouchableOpacity
+            style={styles.startRideButton}
+            onPress={() =>
+              navigation.navigate('DriverHomeScreen', {
+                pickup: {
+                  latitude: item.startLocation.latitude,
+                  longitude: item.startLocation.longitude,
+                },
+                dropoff: {
+                  latitude: item.endLocation.latitude,
+                  longitude: item.endLocation.longitude,
+                },
+                driverId: item._id,
+              })
+            }>
+            <Text style={styles.buttonText}>Proceed to Map</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -383,6 +401,13 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     color: '#fff',
     fontWeight: '500',
+  },
+  startRideButton: {
+    backgroundColor: '#4caf50',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
   },
 });
 

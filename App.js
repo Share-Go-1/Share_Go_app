@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import 'react-native-url-polyfill/auto';
 import { SafeAreaView, StyleSheet } from 'react-native';
 import StackNavigator from './Screens/Stack/StackNavigator';
-import { requestNotificationPermission, scheduleNotification, scheduleRecurringNotifications } from '../Share_Go_app/android/app/src/utils/notificationService';
+import { requestNotificationPermission, scheduleNotification, scheduleRecurringNotifications } from '../frontside/android/app/src/utils/notificationService';
 
 
 export default function App() {

@@ -54,7 +54,7 @@ const DriverSettingsScreen = ({navigation}) => {
             setLoading(true);
             try {
               const response = await fetch(
-                `http://10.135.88.135:4000/api/drivers/${driverId}`,
+                `http://10.135.40.171:4000/api/drivers/${driverId}`,
                 {
                   method: 'DELETE',
                   headers: {

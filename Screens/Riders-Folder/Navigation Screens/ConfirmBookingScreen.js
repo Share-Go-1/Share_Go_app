@@ -24,7 +24,7 @@ const ConfirmBookingScreen = ({route, navigation}) => {
     const initializeRiderId = async () => {
       try {
         let storedRiderId = await AsyncStorage.getItem('riderId');
-        console.log('Rider ID from AsyncStorage:', storedRiderId);
+        //console.log('Rider ID from AsyncStorage:', storedRiderId);
 
         if (!storedRiderId && route.params?.riderId) {
           storedRiderId = route.params.riderId;
@@ -53,9 +53,10 @@ const ConfirmBookingScreen = ({route, navigation}) => {
     setLoading(true);
     try {
       const response = await axios.get(`${BASE_URL}/riderpost/${riderId}`, {
-        params: {booked: false},
+       // params: {booked: false},
+        params: {booked: true},
       });
-      console.log('Fetch Rides Response:', response.data);
+      
       setRides(response.data.rides); // Assuming response.data.rides
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to fetch rides.';
@@ -124,6 +125,7 @@ const ConfirmBookingScreen = ({route, navigation}) => {
    
 
   const renderRide = ({item}) => {
+     console.log("Rendering ride:", item);
     // Format date and time separately
     const rideDateTime = item.rideDateTime ? new Date(item.rideDateTime) : null;
     const formattedDate = rideDateTime
@@ -213,6 +215,25 @@ const ConfirmBookingScreen = ({route, navigation}) => {
             <Text style={styles.buttonText}>Cancel Booking</Text>
           </TouchableOpacity>
         </View>
+         {item.booked && (
+                  <TouchableOpacity
+                    style={styles.startRideButton}
+                    onPress={() =>
+                      navigation.navigate('HomeScreen', {
+                        pickup: {
+                          latitude: item.startLocation.latitude,
+                          longitude: item.startLocation.longitude,
+                        },
+                        dropoff: {
+                          latitude: item.endLocation.latitude,
+                          longitude: item.endLocation.longitude,
+                        },
+                        riderId: item._id,
+                      })
+                    }>
+                    <Text style={styles.buttonText}>Proceed to Map</Text>
+                  </TouchableOpacity>
+                )}
       </View>
     );
   };
@@ -334,6 +355,24 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cancelButton: {
+    backgroundColor: '#dc3545',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  startRideButton: {
+    backgroundColor: '#28a745',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,                  
   },
   buttonText: {
     color: '#fff',
