@@ -24,7 +24,7 @@ const ConfirmBookingScreen = ({route, navigation}) => {
     const initializeRiderId = async () => {
       try {
         let storedRiderId = await AsyncStorage.getItem('riderId');
-        //console.log('Rider ID from AsyncStorage:', storedRiderId);
+        console.log('Rider ID from AsyncStorage:', storedRiderId);
 
         if (!storedRiderId && route.params?.riderId) {
           storedRiderId = route.params.riderId;

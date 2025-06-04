@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import useNotifications from '../Navigation Screens/Notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {BASE_URL} from '../../../config/config';
 
 const SettingsScreen = ({navigation}) => {
   // const [isEnabled, setIsEnabled] = useState(false);
@@ -54,8 +55,7 @@ const SettingsScreen = ({navigation}) => {
             setLoading(true);
             try {
               const response = await fetch(
-                `http://10.135.40.171
-                :4000/api/riders/${riderId}`,
+                `${BASE_URL}/riders/${riderId}`,
                 {
                   method: 'DELETE',
                   headers: {

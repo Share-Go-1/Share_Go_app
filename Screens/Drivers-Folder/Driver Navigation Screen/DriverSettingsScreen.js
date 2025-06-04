@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useNotifications from '../../Riders-Folder/Navigation Screens/Notifications';
+import {BASE_URL} from '../../../config/config';
 
 const DriverSettingsScreen = ({navigation}) => {
   //const [isEnabled, setIsEnabled] = useState(false);
@@ -54,7 +55,7 @@ const DriverSettingsScreen = ({navigation}) => {
             setLoading(true);
             try {
               const response = await fetch(
-                `http://10.135.40.171:4000/api/drivers/${driverId}`,
+                `${BASE_URL}/drivers/${driverId}`,
                 {
                   method: 'DELETE',
                   headers: {
