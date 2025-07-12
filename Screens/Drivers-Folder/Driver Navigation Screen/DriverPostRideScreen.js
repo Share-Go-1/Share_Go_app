@@ -139,7 +139,8 @@ export default function DriverPostRideScreen() {
     return { totalFare: total, commission: commission.toFixed(2) };
   };
 
-  const handleCalculate = async () => {
+  // Only calculates fare and distance
+  const handleCalculateFare = async () => {
     if (!pickup || !destination || !selectedDateTime) {
       return Alert.alert('Error', 'Please enter pickup, destination, and select date & time.');
     }
@@ -155,15 +156,37 @@ export default function DriverPostRideScreen() {
 
       const { totalFare, commission } = calculateFare(kms);
       setFare(totalFare);
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
+      console.error(err);
+      Alert.alert('Error', 'Calculation failed.');
+    }
+  };
 
-      await uploadRideDetails(start, end, kms, totalFare, commission, selectedDateTime);
-
+  // Only posts the ride after fare is calculated
+  const handlePostRide = async () => {
+    if (!pickupCoords || !destCoords || !distance || !fare || !selectedDateTime) {
+      Alert.alert('Please calculate fare first and fill all details.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const { commission } = calculateFare(parseFloat(distance));
+      await uploadRideDetails(
+        pickupCoords,
+        destCoords,
+        parseFloat(distance),
+        fare,
+        commission,
+        selectedDateTime,
+      );
       setPostedRides(prev => [
         {
           pickup,
           destination,
-          distance: kms.toFixed(2),
-          totalFare,
+          distance,
+          totalFare: fare,
           dateTime: selectedDateTime.toISOString(),
           booked: false,
           riderId: null,
@@ -171,11 +194,11 @@ export default function DriverPostRideScreen() {
         },
         ...prev
       ]);
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Calculation or upload failed.');
-    } finally {
       setLoading(false);
+    } catch (err) {
+      setLoading(false);
+      console.error(err);
+      Alert.alert('Error', 'Posting failed.');
     }
   };
 
@@ -271,13 +294,12 @@ export default function DriverPostRideScreen() {
             minimumDate={new Date()}
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleCalculate}>
-            <Text style={styles.buttonTxt}>Calculate & Post</Text>
+          <TouchableOpacity style={styles.button} onPress={handleCalculateFare}>
+            <Text style={styles.buttonTxt}>Fare</Text>
           </TouchableOpacity>
 
-          {loading && <ActivityIndicator size="large" color="#1e90ff" style={{ marginTop: 20 }} />}
-          {pickupCoords && <Text style={styles.coord}>📍 {pickupCoords.latitude}, {pickupCoords.longitude}</Text>}
-          {destCoords && <Text style={styles.coord}>🏁 {destCoords.latitude}, {destCoords.longitude}</Text>}
+          
+
           {distance && <Text style={styles.result}>Distance: {distance} km</Text>}
           {fare && <Text style={styles.result}>Fare: Rs. {fare}</Text>}
           {selectedDateTime && (
@@ -285,6 +307,10 @@ export default function DriverPostRideScreen() {
               Scheduled: {selectedDateTime.toLocaleString()}
             </Text>
           )}
+
+          <TouchableOpacity style={[styles.button, {backgroundColor: '#28a745', marginTop: 10}]} onPress={handlePostRide}>
+            <Text style={styles.buttonTxt}>Post</Text>
+          </TouchableOpacity>
         </View>
 
       </ScrollView>
