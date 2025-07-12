@@ -188,8 +188,8 @@ const ConfirmBookingScreen = ({route, navigation}) => {
               {item.driverName || 'Not Assigned'}
             </Text>
             <Text style={styles.detail}>
-              <Text style={styles.label}>Driver Number:</Text>{' '}
-              {item.driverNumber || 'Not Assigned'}
+              <Text style={styles.label}>Driver Number: </Text>
+              {item.driverNumber ? item.driverNumber : 'Not Assigned'}
             </Text>
             <Text style={styles.detail}>
               <Text style={styles.label}>vehicle Color:</Text>{' '}

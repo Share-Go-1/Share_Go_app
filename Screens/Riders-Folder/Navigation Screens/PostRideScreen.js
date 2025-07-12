@@ -188,7 +188,8 @@ export default function PostRideScreen() {
     hideDatePicker();
   };
 
-  const handleCalculate = async () => {
+  // Only calculates fare and distance
+  const handleCalculateFare = async () => {
     const currentDate = new Date();
     if (!pickup || !destination || !selectedDateTime) {
       Alert.alert('Please enter Pickup, Destination, and select Date & Time');
@@ -227,39 +228,53 @@ export default function PostRideScreen() {
         return;
       }
       setFare(totalFare);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      Alert.alert(
+        'Error',
+        'Error calculating distance. Please try again.',
+      );
+      console.error(error);
+    }
+  };
 
+  // Only posts the ride after fare is calculated
+  const handlePostRide = async () => {
+    if (!pickupCoords || !destCoords || !distance || !fare || !selectedDateTime) {
+      Alert.alert('Please calculate fare first and fill all details.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const {sharegoEarning} = calculateFare(parseFloat(distance));
       await uploadRideDetails(
         pickup,
         destination,
-        pickupLocation,
-        destLocation,
-        realDistance,
-        totalFare,
+        pickupCoords,
+        destCoords,
+        parseFloat(distance),
+        fare,
         sharegoEarning,
         selectedDateTime,
       );
-
       setPostedRides(prev => [
         ...prev,
         {
           pickup,
           destination,
-          distance: realDistance.toFixed(2),
-          totalFare,
+          distance,
+          totalFare: fare,
           sharegoEarning,
           dateTime: selectedDateTime.toISOString(),
           booked: false,
           driverId: null,
         },
       ]);
-
       setLoading(false);
     } catch (error) {
       setLoading(false);
-      Alert.alert(
-        'Error',
-        'Error calculating distance or uploading. Please try again.',
-      );
+      Alert.alert('Error', 'Error posting ride. Please try again.');
       console.error(error);
     }
   };
@@ -407,9 +422,11 @@ export default function PostRideScreen() {
             minuteInterval={5} // Optional: 5-minute increments
           />
 
-          <TouchableOpacity style={styles.calcButton} onPress={handleCalculate}>
-            <Text style={styles.calcButtonText}>Calculate Distance</Text>
+          <TouchableOpacity style={styles.calcButton} onPress={handleCalculateFare}>
+            <Text style={styles.calcButtonText}>Fare</Text>
           </TouchableOpacity>
+
+          
 
           {loading && (
             <ActivityIndicator
@@ -417,18 +434,6 @@ export default function PostRideScreen() {
               color="#1e90ff"
               style={{marginTop: 20}}
             />
-          )}
-
-          {pickupCoords && (
-            <Text style={styles.coordText}>
-              🚩 Pickup: {pickupCoords.latitude}, {pickupCoords.longitude}
-            </Text>
-          )}
-
-          {destCoords && (
-            <Text style={styles.coordText}>
-              🎯 Destination: {destCoords.latitude}, {destCoords.longitude}
-            </Text>
           )}
 
           {distance && (
@@ -444,6 +449,10 @@ export default function PostRideScreen() {
               Scheduled: {selectedDateTime.toLocaleString()}
             </Text>
           )}
+
+          <TouchableOpacity style={[styles.calcButton, {backgroundColor: '#28a745', marginTop: 10}]} onPress={handlePostRide}>
+            <Text style={[styles.calcButtonText, {color: '#fff'}]}>Post</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

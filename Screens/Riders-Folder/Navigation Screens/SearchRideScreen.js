@@ -166,8 +166,8 @@ const SearchRideScreen = () => {
     );
   };
 
-  // Memoized Header
-  const renderHeader = useCallback(() => (
+  // Static Header Component to prevent re-rendering and losing TextInput focus
+  const Header = memo(() => (
     <View style={styles.headerContainer}>
       <TextInput
         style={styles.input}
@@ -191,7 +191,7 @@ const SearchRideScreen = () => {
         <Text style={styles.noRidesText}>No unbooked driver rides found.</Text>
       )}
     </View>
-  ), [pickup, destination, loading, driverRides]);
+  ));
 
   return (
     <KeyboardAvoidingView
@@ -202,7 +202,7 @@ const SearchRideScreen = () => {
         data={driverRides}
         keyExtractor={(item) => item._id}
         renderItem={renderRideItem}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={<Header />}
         contentContainerStyle={styles.listContainer}
         keyboardShouldPersistTaps="handled"
       />
